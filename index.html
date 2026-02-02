@@ -485,14 +485,20 @@
 
                     // Step 2: 好調・絶好調補正 & 指針 (None)
                     let condMultBase = 0;
-                    let labelPrefix = "条件(なし)";
+                    let labelPrefix = "通常";
                     if (isSuper) {
+                        if (cond > 0){
                         condMultBase = 0.5 + cond / 10.0;
-                        labelPrefix = "条件(絶好調)";
+                        labelPrefix = "絶好調";
+                        }
+                        else {
+                            condMultBase = 0;
+                            labelPrefix = "通常";
+                        }
                     } else {
                         if (cond > 0) {
                             condMultBase = 0.5;
-                            labelPrefix = "条件(好調)";
+                            labelPrefix = "好調";
                         }
                     }
                     const totalCondMult = 1 + condMultBase * nCond;
