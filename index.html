@@ -1,0 +1,841 @@
+<!doctype html>
+<html lang="ja" class="light">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>学マス ダメージ最適化 & 比較</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script>
+            tailwind.config = {
+                darkMode: "class",
+                theme: {
+                    extend: {
+                        colors: {
+                            slate: {
+                                850: "#1e293b", // Custom dark shade
+                                950: "#020617",
+                            },
+                        },
+                    },
+                },
+            };
+        </script>
+        <style>
+            body {
+                font-family: "Segoe UI", sans-serif;
+                transition:
+                    background-color 0.3s,
+                    color 0.3s;
+            }
+            /* トグルスイッチの動作 */
+            .toggle-checkbox:checked {
+                right: 0;
+                border-color: #68d391;
+            }
+            .toggle-checkbox:checked + .toggle-label {
+                background-color: #4f46e5;
+            }
+
+            /* カスタムスクロールバー（ダークモード用） */
+            .dark ::-webkit-scrollbar {
+                width: 8px;
+            }
+            .dark ::-webkit-scrollbar-track {
+                background: #0f172a;
+            }
+            .dark ::-webkit-scrollbar-thumb {
+                background: #334155;
+                border-radius: 4px;
+            }
+            .dark ::-webkit-scrollbar-thumb:hover {
+                background: #475569;
+            }
+        </style>
+    </head>
+    <body
+        class="bg-slate-100 text-slate-800 dark:bg-slate-950 dark:text-slate-200 p-4 md:p-8 transition-colors duration-300"
+    >
+        <div class="max-w-6xl mx-auto relative">
+            <div class="absolute top-0 right-0 z-10">
+                <button
+                    id="theme_toggle"
+                    class="p-2 rounded-full bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-sm border border-slate-200 dark:border-slate-700 transition-all focus:outline-none"
+                >
+                    <svg
+                        id="icon_sun"
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-6 w-6 hidden dark:block"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+                        />
+                    </svg>
+                    <svg
+                        id="icon_moon"
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-6 w-6 block dark:hidden"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+                        />
+                    </svg>
+                </button>
+            </div>
+
+            <header class="mb-6 pr-12">
+                <h1
+                    class="text-2xl font-bold text-slate-800 dark:text-slate-100"
+                >
+                    ダメージ最適化比較ツール
+                </h1>
+                <p class="text-slate-500 dark:text-slate-400 text-sm">
+                    現在のリソース配分と、特定された計算式に基づいた理想配分を比較します
+                </p>
+            </header>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <div class="lg:col-span-4 space-y-4">
+                    <div
+                        class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-5 transition-colors duration-300"
+                    >
+                        <h2
+                            class="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase mb-4 border-b dark:border-slate-800 pb-2"
+                        >
+                            現在のステータス
+                        </h2>
+
+                        <div
+                            class="mb-4 flex flex-col gap-2 bg-indigo-50 dark:bg-indigo-900/20 p-3 rounded-lg border border-indigo-100 dark:border-indigo-900/30"
+                        >
+                            <div class="flex items-center justify-between">
+                                <span
+                                    class="text-sm font-bold text-indigo-900 dark:text-indigo-300"
+                                    >絶好調</span
+                                >
+                                <div
+                                    class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in"
+                                >
+                                    <input
+                                        type="checkbox"
+                                        name="toggle"
+                                        id="is_super_cond"
+                                        class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer peer checked:right-0 checked:border-indigo-600 right-4 top-0 transition-all duration-300"
+                                        checked
+                                    />
+                                    <label
+                                        for="is_super_cond"
+                                        class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 dark:bg-slate-600 cursor-pointer peer-checked:bg-indigo-600 transition-colors duration-300"
+                                    ></label>
+                                </div>
+                            </div>
+                            <p
+                                class="text-[10px] text-indigo-700 dark:text-indigo-400 leading-tight"
+                            >
+                                <span class="font-bold">ON:</span> 1.5 +
+                                (好調/10) <br />
+                                <span class="font-bold">OFF:</span> 好調あり 1.5
+                                / なし 1.0
+                            </p>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3 mb-3">
+                            <div>
+                                <label
+                                    class="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1"
+                                    >集中</label
+                                >
+                                <input
+                                    type="number"
+                                    id="actual_conc"
+                                    value="50"
+                                    class="w-full p-2 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 input-param"
+                                />
+                            </div>
+                            <div>
+                                <label
+                                    class="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1"
+                                    >好調</label
+                                >
+                                <input
+                                    type="number"
+                                    id="actual_cond"
+                                    value="50"
+                                    class="w-full p-2 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 input-param"
+                                />
+                            </div>
+                        </div>
+
+                        <div
+                            class="grid grid-cols-2 gap-3 mb-3 pt-3 border-t border-slate-100 dark:border-slate-800"
+                        >
+                            <div>
+                                <label
+                                    class="block text-xs font-bold text-amber-600 dark:text-amber-500 mb-1"
+                                    >成長 (Growth)</label
+                                >
+                                <input
+                                    type="number"
+                                    id="actual_growth"
+                                    value="0"
+                                    class="w-full p-2 border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-900/10 text-amber-800 dark:text-amber-200 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-amber-500 input-param"
+                                />
+                            </div>
+                            <div>
+                                <label
+                                    class="block text-xs font-bold text-rose-600 dark:text-rose-500 mb-1"
+                                    >熱意 (Enthusiasm)</label
+                                >
+                                <input
+                                    type="number"
+                                    id="actual_enthusiasm"
+                                    value="0"
+                                    class="w-full p-2 border border-rose-200 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-900/10 text-rose-800 dark:text-rose-200 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-rose-500 input-param"
+                                />
+                            </div>
+                        </div>
+
+                        <div
+                            class="bg-slate-50 dark:bg-slate-800 p-3 rounded border border-slate-200 dark:border-slate-700 text-center mt-3"
+                        >
+                            <p
+                                class="text-xs text-slate-400 font-bold uppercase"
+                            >
+                                合計リソース (集中+好調)
+                            </p>
+                            <p
+                                class="text-xl font-black text-slate-700 dark:text-slate-200"
+                                id="total_res_display"
+                            >
+                                0
+                            </p>
+                            <p class="text-[10px] text-slate-400 mt-1">
+                                ※成長・熱意は固定値として扱います
+                            </p>
+                        </div>
+                    </div>
+
+                    <div
+                        class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-5 transition-colors duration-300"
+                    >
+                        <h2
+                            class="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase mb-4 border-b dark:border-slate-800 pb-2"
+                        >
+                            係数・環境設定
+                        </h2>
+                        <div class="space-y-3">
+                            <div>
+                                <label
+                                    class="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1"
+                                    >基礎スコア</label
+                                >
+                                <input
+                                    type="number"
+                                    id="base"
+                                    value="15"
+                                    class="w-full p-2 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 input-param"
+                                />
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label
+                                        class="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1"
+                                        >集中係数</label
+                                    >
+                                    <input
+                                        type="number"
+                                        id="n_conc"
+                                        value="1.0"
+                                        step="0.1"
+                                        class="w-full p-2 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 input-param"
+                                    />
+                                </div>
+                                <div>
+                                    <label
+                                        class="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1"
+                                        >好調係数</label
+                                    >
+                                    <input
+                                        type="number"
+                                        id="n_cond"
+                                        value="1.0"
+                                        step="0.1"
+                                        class="w-full p-2 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 input-param"
+                                    />
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label
+                                        class="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1"
+                                        >指針倍率</label
+                                    >
+                                    <input
+                                        type="number"
+                                        id="stance_mult"
+                                        value="1.0"
+                                        step="0.1"
+                                        class="w-full p-2 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 input-param"
+                                    />
+                                </div>
+                                <div>
+                                    <label
+                                        class="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1"
+                                        >スコア上昇量増加(%)</label
+                                    >
+                                    <input
+                                        type="number"
+                                        id="buff_rate"
+                                        value="0"
+                                        class="w-full p-2 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 input-param"
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label
+                                    class="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1"
+                                    >ターンボーナス (%)</label
+                                >
+                                <input
+                                    type="number"
+                                    id="turn_bonus"
+                                    value="1500"
+                                    class="w-full p-2 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 input-param"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-8 space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div
+                            class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 border-l-4 border-l-slate-300 dark:border-l-slate-600 transition-colors duration-300"
+                        >
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p
+                                        class="text-xs font-bold text-slate-400 uppercase tracking-wider"
+                                    >
+                                        Current Damage
+                                    </p>
+                                    <p
+                                        class="text-3xl font-black text-slate-700 dark:text-slate-200 mt-1"
+                                        id="current_dmg"
+                                    >
+                                        0
+                                    </p>
+                                </div>
+                                <div class="text-right">
+                                    <span
+                                        class="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-bold px-2 py-1 rounded"
+                                        >現在</span
+                                    >
+                                    <p
+                                        class="text-xs text-slate-500 dark:text-slate-400 mt-1"
+                                        id="current_ratio"
+                                    >
+                                        --
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div
+                            class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 border-l-4 border-l-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/10 transition-colors duration-300"
+                        >
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p
+                                        class="text-xs font-bold text-indigo-400 uppercase tracking-wider"
+                                    >
+                                        Optimal Damage
+                                    </p>
+                                    <p
+                                        class="text-3xl font-black text-indigo-700 dark:text-indigo-300 mt-1"
+                                        id="optimal_dmg"
+                                    >
+                                        0
+                                    </p>
+                                </div>
+                                <div class="text-right">
+                                    <span
+                                        class="bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-300 text-xs font-bold px-2 py-1 rounded"
+                                        >理想</span
+                                    >
+                                    <p
+                                        class="text-xs text-indigo-600 dark:text-indigo-400 mt-1 font-bold"
+                                        id="optimal_ratio"
+                                    >
+                                        --
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                        class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 transition-colors duration-300"
+                    >
+                        <div class="flex justify-between items-end mb-4">
+                            <h3
+                                class="font-bold text-slate-700 dark:text-slate-200"
+                            >
+                                配分シミュレーション
+                            </h3>
+                            <p
+                                id="diff_text"
+                                class="text-sm font-bold text-slate-400"
+                            >
+                                機会損失: 0
+                            </p>
+                        </div>
+                        <div class="h-64 relative w-full">
+                            <canvas id="optChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div
+                        class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden transition-colors duration-300"
+                    >
+                        <div
+                            class="bg-slate-50 dark:bg-slate-800 border-b dark:border-slate-700 px-6 py-3"
+                        >
+                            <h3
+                                class="font-bold text-slate-700 dark:text-slate-200 text-sm"
+                            >
+                                計算ステップ詳細比較
+                            </h3>
+                        </div>
+                        <table class="w-full text-sm text-left">
+                            <thead
+                                class="text-slate-500 dark:text-slate-400 bg-slate-50/50 dark:bg-slate-800/50 border-b dark:border-slate-700"
+                            >
+                                <tr>
+                                    <th
+                                        class="px-6 py-3 font-medium text-xs uppercase w-1/3"
+                                    >
+                                        Step
+                                    </th>
+                                    <th
+                                        class="px-6 py-3 font-medium text-xs uppercase w-1/3"
+                                    >
+                                        現在の構成
+                                    </th>
+                                    <th
+                                        class="px-6 py-3 font-medium text-xs uppercase w-1/3 text-indigo-600 dark:text-indigo-400"
+                                    >
+                                        理想的な構成
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody
+                                class="divide-y divide-slate-100 dark:divide-slate-700 text-slate-700 dark:text-slate-300"
+                                id="step_table"
+                            ></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            /**
+             * Core Logic Module
+             * 計算ロジックを純粋関数として分離
+             */
+            const Calculator = (() => {
+                const round = (val, mode) => {
+                    const v = Number(val.toFixed(10));
+                    switch (mode) {
+                        case "ceil":
+                            return Math.ceil(v);
+                        case "floor":
+                            return Math.floor(v);
+                        case "round":
+                            return Math.round(v);
+                        default:
+                            return v;
+                    }
+                };
+
+                const calculateDamage = (params) => {
+                    const {
+                        base,
+                        conc,
+                        nConc,
+                        cond,
+                        nCond,
+                        stance,
+                        buff,
+                        turn,
+                        growth,
+                        enthusiasm,
+                        isSuper,
+                    } = params;
+                    const steps = [];
+
+                    // Step 1: 基礎値計算 (Ceil)
+                    const raw1 = base + conc * nConc + growth + enthusiasm;
+                    const val1 = round(raw1, "ceil");
+                    steps.push({ label: "基礎スコア", val: val1 });
+
+                    // Step 2: 好調・絶好調補正 & 指針 (None)
+                    let condMultBase = 0;
+                    let labelPrefix = "条件(なし)";
+                    if (isSuper) {
+                        condMultBase = 0.5 + cond / 10.0;
+                        labelPrefix = "条件(絶好調)";
+                    } else {
+                        if (cond > 0) {
+                            condMultBase = 0.5;
+                            labelPrefix = "条件(好調)";
+                        }
+                    }
+                    const totalCondMult = 1 + condMultBase * nCond;
+                    const raw2 = val1 * totalCondMult * stance;
+                    const val2 = raw2;
+                    steps.push({ label: `${labelPrefix}・指針`, val: val2 });
+
+                    // Step 3: スコア上昇量増加バフ (Ceil)
+                    const raw3 = val2 * (1 + buff);
+                    const val3 = round(raw3, "ceil");
+                    steps.push({ label: "スコア上昇量増加", val: val3 });
+
+                    // Step 4: ターン倍率 (Ceil)
+                    const raw4 = val3 * turn;
+                    const val4 = round(raw4, "ceil");
+                    steps.push({ label: "最終ダメージ", val: val4 });
+
+                    return { final: val4, steps };
+                };
+
+                const simulateOptimal = (params, totalRes) => {
+                    let maxDmg = -1;
+                    let bestConc = 0;
+                    let bestResult = null;
+
+                    const chartData = { labels: [], data: [] };
+
+                    for (let c = 0; c <= totalRes; c++) {
+                        const currentCond = totalRes - c;
+                        const simParams = {
+                            ...params,
+                            conc: c,
+                            cond: currentCond,
+                        };
+                        const res = calculateDamage(simParams);
+
+                        chartData.labels.push(c);
+                        chartData.data.push(res.final);
+
+                        if (res.final > maxDmg) {
+                            maxDmg = res.final;
+                            bestConc = c;
+                            bestResult = res;
+                        }
+                    }
+
+                    return { maxDmg, bestConc, bestResult, chartData };
+                };
+
+                return { calculateDamage, simulateOptimal };
+            })();
+
+            /**
+             * Theme Manager
+             * ダークモード切り替え管理
+             */
+            const ThemeManager = (() => {
+                let isDark = false;
+
+                const init = () => {
+                    // 保存された設定またはシステム設定を確認
+                    if (
+                        localStorage.theme === "dark" ||
+                        (!("theme" in localStorage) &&
+                            window.matchMedia("(prefers-color-scheme: dark)")
+                                .matches)
+                    ) {
+                        isDark = true;
+                    } else {
+                        isDark = false;
+                    }
+                    apply();
+                };
+
+                const toggle = () => {
+                    isDark = !isDark;
+                    localStorage.theme = isDark ? "dark" : "light";
+                    apply();
+                    // チャートの色も更新するためイベント発火またはコールバック呼び出しが必要だが、
+                    // 簡易的にApp.updateを呼ぶ設計にする
+                    return isDark;
+                };
+
+                const apply = () => {
+                    if (isDark) {
+                        document.documentElement.classList.add("dark");
+                    } else {
+                        document.documentElement.classList.remove("dark");
+                    }
+                };
+
+                const getChartColors = () => {
+                    return isDark
+                        ? {
+                              grid: "#334155", // slate-700
+                              text: "#94a3b8", // slate-400
+                              line: "#64748b", // slate-500
+                          }
+                        : {
+                              grid: "#e2e8f0", // slate-200
+                              text: "#64748b", // slate-500
+                              line: "#94a3b8", // slate-400
+                          };
+                };
+
+                return { init, toggle, getChartColors, isDark: () => isDark };
+            })();
+
+            /**
+             * UI Controller
+             */
+            const App = (() => {
+                let chartInstance = null;
+
+                const els = {
+                    inputs: document.querySelectorAll(
+                        ".input-param, #is_super_cond",
+                    ),
+                    themeBtn: document.getElementById("theme_toggle"),
+                    display: {
+                        totalRes: document.getElementById("total_res_display"),
+                        currentDmg: document.getElementById("current_dmg"),
+                        optimalDmg: document.getElementById("optimal_dmg"),
+                        currentRatio: document.getElementById("current_ratio"),
+                        optimalRatio: document.getElementById("optimal_ratio"),
+                        diffText: document.getElementById("diff_text"),
+                        stepTable: document.getElementById("step_table"),
+                    },
+                    chartCanvas: document.getElementById("optChart"),
+                };
+
+                const getState = () => {
+                    const getVal = (id) =>
+                        parseFloat(document.getElementById(id).value) || 0;
+                    const getInt = (id) =>
+                        parseInt(document.getElementById(id).value) || 0;
+                    return {
+                        conc: getInt("actual_conc"),
+                        cond: getInt("actual_cond"),
+                        growth: getInt("actual_growth"),
+                        enthusiasm: getInt("actual_enthusiasm"),
+                        isSuper:
+                            document.getElementById("is_super_cond").checked,
+                        base: getVal("base"),
+                        nConc: getVal("n_conc"),
+                        nCond: getVal("n_cond"),
+                        stance: getVal("stance_mult"),
+                        buff: getVal("buff_rate") / 100,
+                        turn: getVal("turn_bonus") / 100,
+                    };
+                };
+
+                const init = () => {
+                    ThemeManager.init();
+                    initChart();
+                    attachEvents();
+                    update();
+                };
+
+                const attachEvents = () => {
+                    els.inputs.forEach((input) =>
+                        input.addEventListener("input", update),
+                    );
+
+                    els.themeBtn.addEventListener("click", () => {
+                        ThemeManager.toggle();
+                        updateChartTheme(); // チャートの色を更新
+                    });
+                };
+
+                const initChart = () => {
+                    const ctx = els.chartCanvas.getContext("2d");
+                    const colors = ThemeManager.getChartColors();
+
+                    chartInstance = new Chart(ctx, {
+                        type: "line",
+                        data: {
+                            labels: [],
+                            datasets: [
+                                {
+                                    label: "ダメージ",
+                                    data: [],
+                                    borderColor: colors.line,
+                                    borderWidth: 2,
+                                    tension: 0.3,
+                                    pointRadius: 0,
+                                    pointHoverRadius: 4,
+                                },
+                                {
+                                    label: "現在",
+                                    data: [],
+                                    pointRadius: 6,
+                                    pointBackgroundColor: "#64748b",
+                                    pointBorderColor: "#fff",
+                                    pointBorderWidth: 2,
+                                    showLine: false,
+                                },
+                                {
+                                    label: "理想",
+                                    data: [],
+                                    pointRadius: 6,
+                                    pointBackgroundColor: "#6366f1",
+                                    pointBorderColor: "#fff",
+                                    pointBorderWidth: 2,
+                                    showLine: false,
+                                },
+                            ],
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            interaction: { mode: "index", intersect: false },
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    callbacks: {
+                                        label: (ctx) =>
+                                            `ダメージ: ${Number(ctx.raw.toFixed(2)).toLocaleString()}`,
+                                    },
+                                },
+                            },
+                            scales: {
+                                x: {
+                                    title: {
+                                        display: true,
+                                        text: "集中 (Conc) の値",
+                                        color: colors.text,
+                                        font: { size: 10 },
+                                    },
+                                    grid: { display: false },
+                                    ticks: { color: colors.text },
+                                },
+                                y: {
+                                    ticks: {
+                                        callback: (val) => val.toLocaleString(),
+                                        color: colors.text,
+                                    },
+                                    grid: { color: colors.grid },
+                                },
+                            },
+                        },
+                    });
+                };
+
+                // テーマ切り替え時にチャートの設定を更新
+                const updateChartTheme = () => {
+                    if (!chartInstance) return;
+                    const colors = ThemeManager.getChartColors();
+
+                    chartInstance.options.scales.x.title.color = colors.text;
+                    chartInstance.options.scales.x.ticks.color = colors.text;
+                    chartInstance.options.scales.y.ticks.color = colors.text;
+                    chartInstance.options.scales.y.grid.color = colors.grid;
+                    chartInstance.data.datasets[0].borderColor = colors.line;
+
+                    chartInstance.update();
+                };
+
+                const update = () => {
+                    const state = getState();
+                    const totalRes = state.conc + state.cond;
+
+                    els.display.totalRes.innerText = totalRes;
+                    const currentResult = Calculator.calculateDamage(state);
+                    const simResult = Calculator.simulateOptimal(
+                        state,
+                        totalRes,
+                    );
+
+                    renderResults(state, currentResult, simResult, totalRes);
+                    updateChartData(state.conc, simResult);
+                };
+
+                const renderResults = (state, current, best, totalRes) => {
+                    els.display.currentDmg.innerText = Number(
+                        current.final.toFixed(0),
+                    ).toLocaleString();
+                    els.display.optimalDmg.innerText = Number(
+                        best.maxDmg.toFixed(0),
+                    ).toLocaleString();
+                    els.display.currentRatio.innerText = `集中 ${state.conc} : 好調 ${state.cond}`;
+                    els.display.optimalRatio.innerText = `集中 ${best.bestConc} : 好調 ${totalRes - best.bestConc}`;
+
+                    const diff = best.maxDmg - current.final;
+                    const diffPct =
+                        best.maxDmg > 0
+                            ? ((diff / best.maxDmg) * 100).toFixed(1)
+                            : 0;
+
+                    els.display.diffText.innerHTML =
+                        diff > 0.001
+                            ? `<span class="text-rose-500">機会損失: ${Math.floor(diff).toLocaleString()} (-${diffPct}%)</span>`
+                            : `<span class="text-emerald-500">最適構成です (Loss: 0%)</span>`;
+
+                    const rows = current.steps
+                        .map((step, i) => {
+                            const optStep = best.bestResult.steps[i];
+                            const isDifferent =
+                                Math.abs(step.val - optStep.val) > 0.001;
+                            const diffClass = isDifferent
+                                ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 font-bold"
+                                : "text-slate-500 dark:text-slate-400";
+
+                            return `
+                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                    <td class="px-6 py-3 font-mono text-xs text-slate-400 border-r border-slate-100 dark:border-slate-800">Step ${i + 1}. <br><span class="text-slate-600 dark:text-slate-300 font-sans">${step.label}</span></td>
+                    <td class="px-6 py-3 font-bold text-slate-700 dark:text-slate-200">${Number(step.val.toFixed(2)).toLocaleString()}</td>
+                    <td class="px-6 py-3 ${diffClass}">${Number(optStep.val.toFixed(2)).toLocaleString()}</td>
+                </tr>
+            `;
+                        })
+                        .join("");
+                    els.display.stepTable.innerHTML = rows;
+                };
+
+                const updateChartData = (currentConc, simResult) => {
+                    if (!chartInstance) return;
+                    const labels = simResult.chartData.labels;
+                    const data = simResult.chartData.data;
+
+                    chartInstance.data.labels = labels;
+                    chartInstance.data.datasets[0].data = data;
+                    chartInstance.data.datasets[1].data = labels.map((l) =>
+                        l === currentConc ? data[l] : null,
+                    );
+                    chartInstance.data.datasets[2].data = labels.map((l) =>
+                        l === simResult.bestConc ? data[l] : null,
+                    );
+                    chartInstance.update();
+                };
+
+                return { init };
+            })();
+
+            document.addEventListener("DOMContentLoaded", App.init);
+        </script>
+    </body>
+</html>
