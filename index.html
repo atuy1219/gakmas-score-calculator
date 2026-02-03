@@ -4,17 +4,39 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>学マス ダメージ最適化 & 比較</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap"
+            rel="stylesheet"
+        />
         <script src="https://cdn.tailwindcss.com"></script>
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         <script>
             tailwind.config = {
                 darkMode: "class",
                 theme: {
+                    fontFamily: {
+                        sans: ["Noto Sans JP", "sans-serif"],
+                    },
                     extend: {
                         colors: {
                             slate: {
                                 850: "#1e293b",
                                 950: "#020617",
+                            },
+                            indigo: {
+                                50: "#fff7ed",
+                                100: "#ffedd5",
+                                200: "#fed7aa",
+                                300: "#fdba74",
+                                400: "#fb923c",
+                                500: "#f97316",
+                                600: "#ea580c",
+                                700: "#c2410c",
+                                800: "#9a3412",
+                                900: "#7c2d12",
+                                950: "#431407",
                             },
                         },
                     },
@@ -23,7 +45,7 @@
         </script>
         <style>
             body {
-                font-family: "Segoe UI", sans-serif;
+                font-family: "Noto Sans JP", sans-serif;
                 transition:
                     background-color 0.3s,
                     color 0.3s;
@@ -31,10 +53,10 @@
             /* トグルスイッチの動作 */
             .toggle-checkbox:checked {
                 right: 0;
-                border-color: #68d391;
+                border-color: #f97316;
             }
             .toggle-checkbox:checked + .toggle-label {
-                background-color: #4f46e5;
+                background-color: #ea580c;
             }
 
             /* カスタムスクロールバー（ダークモード用） */
@@ -115,7 +137,7 @@
                         <h2
                             class="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase mb-4 border-b dark:border-slate-800 pb-2"
                         >
-                            プラン / タイプ
+                            プラン
                         </h2>
                         <div class="grid grid-cols-4 gap-2">
                             <label class="cursor-pointer">
@@ -142,7 +164,7 @@
                                     class="peer sr-only"
                                 />
                                 <div
-                                    class="rounded-lg border border-slate-200 dark:border-slate-700 p-2 text-center peer-checked:border-indigo-500 peer-checked:bg-indigo-50 dark:peer-checked:bg-indigo-900/20 peer-checked:text-indigo-600 dark:peer-checked:text-indigo-300 transition-all hover:bg-slate-50 dark:hover:bg-slate-800"
+                                    class="rounded-lg border border-slate-200 dark:border-slate-700 p-2 text-center peer-checked:border-blue-500 peer-checked:bg-blue-50 dark:peer-checked:bg-blue-900/20 peer-checked:text-blue-600 dark:peer-checked:text-blue-300 transition-all hover:bg-slate-50 dark:hover:bg-slate-800"
                                 >
                                     <span class="font-bold text-xs sm:text-sm"
                                         >ロジック</span
@@ -157,7 +179,7 @@
                                     class="peer sr-only"
                                 />
                                 <div
-                                    class="rounded-lg border border-slate-200 dark:border-slate-700 p-2 text-center peer-checked:border-indigo-500 peer-checked:bg-indigo-50 dark:peer-checked:bg-indigo-900/20 peer-checked:text-indigo-600 dark:peer-checked:text-indigo-300 transition-all hover:bg-slate-50 dark:hover:bg-slate-800"
+                                    class="rounded-lg border border-slate-200 dark:border-slate-700 p-2 text-center peer-checked:border-purple-500 peer-checked:bg-purple-50 dark:peer-checked:bg-purple-900/20 peer-checked:text-purple-600 dark:peer-checked:text-purple-300 transition-all hover:bg-slate-50 dark:hover:bg-slate-800"
                                 >
                                     <span class="font-bold text-xs sm:text-sm"
                                         >アノマリー</span
@@ -249,62 +271,8 @@
                         </div>
 
                         <div
-                            id="row_logic"
                             data-plan-group="logic custom"
-                            class="grid grid-cols-2 gap-3 mb-3 pt-3 border-t border-slate-100 dark:border-slate-800 hidden"
-                        >
-                            <div>
-                                <label
-                                    class="block text-xs font-bold text-emerald-600 dark:text-emerald-500 mb-1"
-                                    >元気</label
-                                >
-                                <input
-                                    type="number"
-                                    id="logic_genki"
-                                    value="50"
-                                    class="w-full p-2 border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-900/10 text-emerald-800 dark:text-emerald-200 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500 input-param"
-                                />
-                            </div>
-                            <div>
-                                <label
-                                    class="block text-xs font-bold text-sky-600 dark:text-sky-500 mb-1"
-                                    >やる気</label
-                                >
-                                <input
-                                    type="number"
-                                    id="logic_motivation"
-                                    value="50"
-                                    class="w-full p-2 border border-sky-200 dark:border-sky-900/50 bg-sky-50 dark:bg-sky-900/10 text-sky-800 dark:text-sky-200 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-sky-500 input-param"
-                                />
-                            </div>
-                            <div>
-                                <label
-                                    class="block text-xs font-bold text-indigo-600 dark:text-indigo-500 mb-1"
-                                    >好印象</label
-                                >
-                                <input
-                                    type="number"
-                                    id="logic_impression"
-                                    value="0"
-                                    class="w-full p-2 border border-indigo-200 dark:border-indigo-900/50 bg-indigo-50 dark:bg-indigo-900/10 text-indigo-800 dark:text-indigo-200 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 input-param"
-                                />
-                            </div>
-                            <div>
-                                <label
-                                    class="block text-xs font-bold text-fuchsia-600 dark:text-fuchsia-500 mb-1"
-                                    >プライド</label
-                                >
-                                <input
-                                    type="number"
-                                    id="logic_pride"
-                                    value="0"
-                                    class="w-full p-2 border border-fuchsia-200 dark:border-fuchsia-900/50 bg-fuchsia-50 dark:bg-fuchsia-900/10 text-fuchsia-800 dark:text-fuchsia-200 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-fuchsia-500 input-param"
-                                />
-                            </div>
-                        </div>
-                        <div
-                            data-plan-group="logic custom"
-                            class="mb-4 flex flex-col gap-2 bg-fuchsia-50 dark:bg-fuchsia-900/20 p-3 rounded-lg border border-fuchsia-100 dark:border-fuchsia-900/30"
+                            class="mb-3 flex flex-col gap-2 bg-fuchsia-50 dark:bg-fuchsia-900/20 p-3 rounded-lg border border-fuchsia-100 dark:border-fuchsia-900/30 pt-3 border-t border-slate-100 dark:border-slate-800 hidden"
                         >
                             <div class="flex items-center justify-between">
                                 <span
@@ -331,6 +299,49 @@
                             >
                                 有効時、好印象とやる気の小さい方×2%をスコア上昇量増加に加算
                             </p>
+                        </div>
+
+                        <div
+                            id="row_logic"
+                            data-plan-group="logic custom"
+                            class="grid grid-cols-2 gap-3 mb-3 hidden"
+                        >
+                            <div>
+                                <label
+                                    class="block text-xs font-bold text-pink-600 dark:text-pink-500 mb-1"
+                                    >好印象</label
+                                >
+                                <input
+                                    type="number"
+                                    id="logic_impression"
+                                    value="0"
+                                    class="w-full p-2 border border-pink-200 dark:border-pink-900/50 bg-pink-50 dark:bg-pink-900/10 text-pink-800 dark:text-pink-200 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-pink-500 input-param"
+                                />
+                            </div>
+                            <div>
+                                <label
+                                    class="block text-xs font-bold text-sky-600 dark:text-sky-500 mb-1"
+                                    >やる気</label
+                                >
+                                <input
+                                    type="number"
+                                    id="logic_motivation"
+                                    value="50"
+                                    class="w-full p-2 border border-sky-200 dark:border-sky-900/50 bg-sky-50 dark:bg-sky-900/10 text-sky-800 dark:text-sky-200 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-sky-500 input-param"
+                                />
+                            </div>
+                            <div>
+                                <label
+                                    class="block text-xs font-bold text-emerald-600 dark:text-emerald-500 mb-1"
+                                    >元気</label
+                                >
+                                <input
+                                    type="number"
+                                    id="logic_genki"
+                                    value="50"
+                                    class="w-full p-2 border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-900/10 text-emerald-800 dark:text-emerald-200 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500 input-param"
+                                />
+                            </div>
                         </div>
                         <div
                             id="row_anomaly"
@@ -379,21 +390,19 @@
                         </div>
 
                         <div
-                            class="bg-slate-50 dark:bg-slate-800 p-3 rounded border border-slate-200 dark:border-slate-700 text-center mt-3"
+                            id="total_res_box"
+                            class="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-xl border border-indigo-100 dark:border-indigo-900/30 text-center mt-4 transition-colors duration-300"
                         >
                             <p
-                                class="text-xs text-slate-400 font-bold uppercase"
+                                class="text-xs text-indigo-500 dark:text-indigo-400 font-bold uppercase tracking-wider mb-1"
                             >
                                 合計リソース (プラン主要2項目)
                             </p>
                             <p
-                                class="text-xl font-black text-slate-700 dark:text-slate-200"
+                                class="text-2xl font-black text-indigo-700 dark:text-indigo-300"
                                 id="total_res_display"
                             >
                                 0
-                            </p>
-                            <p class="text-[10px] text-slate-400 mt-1">
-                                ※主要2項目以外の値は固定値として扱います
                             </p>
                         </div>
                     </div>
@@ -404,7 +413,7 @@
                         <h2
                             class="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase mb-4 border-b dark:border-slate-800 pb-2"
                         >
-                            係数・環境設定
+                            カード情報
                         </h2>
                         <div class="space-y-3">
                             <div>
@@ -467,19 +476,17 @@
                                     step="0.1"
                                     class="w-full p-2 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 input-param"
                                 />
-                                <p class="text-[10px] text-slate-400 mt-1">
-                                    固定: 入力値そのまま / 集中%: 集中×入力% /
-                                    好調%: 好調×入力%。※%は小数も可
-                                </p>
                                 <p
                                     id="resolved_base_note"
                                     class="text-[10px] text-indigo-500 dark:text-indigo-300 mt-1"
                                 >
                                     実際に計算に使われる基礎スコア:
-                                    （基礎スコアとモードに応じて自動算出）
                                 </p>
                             </div>
-                            <div class="grid grid-cols-2 gap-3">
+                            <div
+                                data-plan-group="sense custom"
+                                class="grid grid-cols-2 gap-3"
+                            >
                                 <div>
                                     <label
                                         class="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1"
@@ -549,6 +556,46 @@
                                         value="0"
                                         class="w-full p-2 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 input-param"
                                     />
+                                </div>
+                            </div>
+                            <div data-plan-group="anomaly custom">
+                                <label
+                                    class="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1"
+                                    >累計全力値加算率 (%)</label
+                                >
+                                <input
+                                    type="number"
+                                    id="allout_rate"
+                                    value="0"
+                                    class="w-full p-2 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 input-param"
+                                />
+                            </div>
+                            <div
+                                data-plan-group="anomaly custom"
+                                class="flex items-center justify-between"
+                            >
+                                <div>
+                                    <p
+                                        class="text-xs font-bold text-amber-600 dark:text-amber-400"
+                                    >
+                                        成長不適用（持続/発動予約）
+                                    </p>
+                                    <p class="text-[10px] text-slate-400">
+                                        持続や発動予約で成長が乗らない場合にON
+                                    </p>
+                                </div>
+                                <div
+                                    class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in"
+                                >
+                                    <input
+                                        type="checkbox"
+                                        id="anomaly_growth_disable_toggle"
+                                        class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer peer checked:right-0 checked:border-amber-500 right-4 top-0 transition-all duration-300"
+                                    />
+                                    <label
+                                        for="anomaly_growth_disable_toggle"
+                                        class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 dark:bg-slate-600 cursor-pointer peer-checked:bg-amber-500 transition-colors duration-300"
+                                    ></label>
                                 </div>
                             </div>
                             <div>
@@ -767,6 +814,10 @@
                         prideBuffEnabled,
                     } = params;
                     const steps = [];
+                    const isLogicLike =
+                        planType === "logic" || planType === "anomaly";
+                    const effectiveNConc = isLogicLike ? 0 : nConc;
+                    const effectiveNCond = isLogicLike ? 0 : nCond;
 
                     const resolvedBase = resolveBase(
                         base,
@@ -776,7 +827,10 @@
 
                     // Step 1: 基礎値計算 (Ceil)
                     const raw1 =
-                        resolvedBase + conc * nConc + growth + enthusiasm;
+                        resolvedBase +
+                        conc * effectiveNConc +
+                        growth +
+                        enthusiasm;
                     const val1 = round(raw1, "ceil");
                     steps.push({ label: "基礎スコア", val: val1 });
 
@@ -797,22 +851,18 @@
                             labelPrefix = "好調";
                         }
                     }
-                    const totalCondMult = 1 + condMultBase * nCond;
+                    const totalCondMult = 1 + condMultBase * effectiveNCond;
                     const raw2 = val1 * totalCondMult * stance;
                     const val2 = raw2;
                     steps.push({ label: `${labelPrefix}・指針`, val: val2 });
 
                     // Step 3: スコア上昇量増加バフ (Ceil)
-                    const useCondAsImpression =
-                        planType === "logic" || planType === "custom";
-                    const effectiveImpression = useCondAsImpression
-                        ? (cond ?? 0)
-                        : (impression ?? 0);
-                    const prideBuff =
-                        prideBuffEnabled && useCondAsImpression
-                            ? 0.02 *
-                              Math.min(effectiveImpression, motivation ?? 0)
-                            : 0;
+                    const prideBuff = prideBuffEnabled
+                        ? Math.min(
+                              0.5,
+                              0.02 * Math.min(impression ?? 0, motivation ?? 0),
+                          )
+                        : 0;
                     const totalBuff = buff + prideBuff;
                     const raw3 = val2 * (1 + totalBuff);
                     const val3 = round(raw3, "ceil");
@@ -826,25 +876,67 @@
                     return { final: val4, steps, resolvedBase };
                 };
 
-                const simulateOptimal = (params, totalRes) => {
+                const simulateOptimal = (params, totalResOverride) => {
                     let maxDmg = -1;
                     let bestConc = 0;
                     let bestResult = null;
 
+                    const isLogicPride =
+                        params.planType === "logic" && params.prideBuffEnabled;
+                    const totalRes =
+                        typeof totalResOverride === "number"
+                            ? totalResOverride
+                            : isLogicPride
+                              ? (params.motivation || 0) +
+                                (params.impression || 0)
+                              : (params.conc || 0) + (params.cond || 0);
+
                     const chartData = { labels: [], data: [] };
+
+                    const skipOptimization =
+                        params.planType === "anomaly" ||
+                        (params.planType === "logic" &&
+                            !params.prideBuffEnabled);
+                    if (skipOptimization) {
+                        const currentResult = calculateDamage(params);
+                        chartData.labels.push(
+                            isLogicPride ? params.motivation : params.conc,
+                        );
+                        chartData.data.push(currentResult.final);
+                        return {
+                            maxDmg: currentResult.final,
+                            bestConc: isLogicPride
+                                ? params.motivation
+                                : params.conc,
+                            bestResult: currentResult,
+                            chartData,
+                            skipOptimization: true,
+                        };
+                    }
 
                     for (let c = 0; c <= totalRes; c++) {
                         const currentCond = totalRes - c;
-                        const simParams = {
-                            ...params,
-                            conc: c,
-                            cond: currentCond,
-                            baseSources: {
-                                ...(params.baseSources || {}),
-                                conc: c,
-                                cond: currentCond,
-                            },
-                        };
+                        const simParams = isLogicPride
+                            ? {
+                                  ...params,
+                                  motivation: c,
+                                  impression: currentCond,
+                                  baseSources: {
+                                      ...(params.baseSources || {}),
+                                      motivation: c,
+                                      impression: currentCond,
+                                  },
+                              }
+                            : {
+                                  ...params,
+                                  conc: c,
+                                  cond: currentCond,
+                                  baseSources: {
+                                      ...(params.baseSources || {}),
+                                      conc: c,
+                                      cond: currentCond,
+                                  },
+                              };
                         const res = calculateDamage(simParams);
 
                         chartData.labels.push(c);
@@ -857,7 +949,13 @@
                         }
                     }
 
-                    return { maxDmg, bestConc, bestResult, chartData };
+                    return {
+                        maxDmg,
+                        bestConc,
+                        bestResult,
+                        chartData,
+                        skipOptimization: false,
+                    };
                 };
 
                 return { calculateDamage, simulateOptimal };
@@ -907,12 +1005,12 @@
                         ? {
                               grid: "#334155", // slate-700
                               text: "#94a3b8", // slate-400
-                              line: "#64748b", // slate-500
+                              line: "#fb923c", // orange-400
                           }
                         : {
                               grid: "#e2e8f0", // slate-200
                               text: "#64748b", // slate-500
-                              line: "#94a3b8", // slate-400
+                              line: "#f97316", // orange-500
                           };
                 };
 
@@ -927,10 +1025,11 @@
 
                 const els = {
                     inputs: document.querySelectorAll(
-                        ".input-param, #is_super_cond, #pride_buff_toggle",
+                        ".input-param, #is_super_cond, #pride_buff_toggle, #anomaly_growth_disable_toggle",
                     ),
                     themeBtn: document.getElementById("theme_toggle"),
                     display: {
+                        totalResBox: document.getElementById("total_res_box"),
                         totalRes: document.getElementById("total_res_display"),
                         currentDmg: document.getElementById("current_dmg"),
                         optimalDmg: document.getElementById("optimal_dmg"),
@@ -961,7 +1060,6 @@
                         genki: getInt("logic_genki"),
                         motivation: getInt("logic_motivation"),
                         impression: getInt("logic_impression"),
-                        pride: getInt("logic_pride"),
                         totalAllout: getInt("actual_total_allout"),
                         isSuper:
                             document.getElementById("is_super_cond").checked,
@@ -972,6 +1070,11 @@
                         stance: getVal("stance_mult"),
                         buff: getVal("buff_rate") / 100,
                         turn: getVal("turn_bonus") / 100,
+                        alloutRate: getVal("allout_rate") / 100,
+                        anomalyGrowthDisabled:
+                            document.getElementById(
+                                "anomaly_growth_disable_toggle",
+                            )?.checked || false,
                         prideBuffEnabled:
                             document.getElementById("pride_buff_toggle")
                                 ?.checked || false,
@@ -1043,7 +1146,7 @@
                                     label: "理想",
                                     data: [],
                                     pointRadius: 6,
-                                    pointBackgroundColor: "#6366f1",
+                                    pointBackgroundColor: "#f97316",
                                     pointBorderColor: "#fff",
                                     pointBorderWidth: 2,
                                     showLine: false,
@@ -1100,12 +1203,37 @@
                     chartInstance.update();
                 };
 
+                const getTotalRes = (state, planAdjusted) => {
+                    if (state.planType === "anomaly") return 0;
+                    if (state.planType === "logic") {
+                        return state.prideBuffEnabled
+                            ? (state.motivation || 0) + (state.impression || 0)
+                            : 0;
+                    }
+                    return (planAdjusted.conc || 0) + (planAdjusted.cond || 0);
+                };
+
+                const toggleTotalResBox = (planType, prideEnabled) => {
+                    if (!els.display.totalResBox) return;
+                    const shouldHide =
+                        planType === "anomaly" ||
+                        (planType === "logic" && !prideEnabled);
+                    if (shouldHide) {
+                        els.display.totalResBox.classList.add("hidden");
+                    } else {
+                        els.display.totalResBox.classList.remove("hidden");
+                    }
+                };
+
                 const update = () => {
                     const state = getState();
                     const planAdjusted = mapPlanParams(state);
-                    const totalRes = planAdjusted.conc + planAdjusted.cond;
+                    const totalRes = getTotalRes(state, planAdjusted);
 
-                    els.display.totalRes.innerText = totalRes;
+                    toggleTotalResBox(state.planType, state.prideBuffEnabled);
+                    if (els.display.totalRes) {
+                        els.display.totalRes.innerText = totalRes;
+                    }
                     const currentResult =
                         Calculator.calculateDamage(planAdjusted);
                     const modeLabel =
@@ -1146,9 +1274,13 @@
                     els.display.optimalDmg.innerText = Number(
                         best.maxDmg.toFixed(0),
                     ).toLocaleString();
+                    const isLogicPride =
+                        state.planType === "logic" && state.prideBuffEnabled;
                     const labelA =
                         state.planType === "logic"
-                            ? "元気"
+                            ? isLogicPride
+                                ? "やる気"
+                                : "元気"
                             : state.planType === "anomaly"
                               ? "熱意"
                               : state.planType === "custom"
@@ -1156,7 +1288,9 @@
                                 : "集中";
                     const labelB =
                         state.planType === "logic"
-                            ? "好印象"
+                            ? isLogicPride
+                                ? "好印象"
+                                : "好印象"
                             : state.planType === "anomaly"
                               ? "成長"
                               : state.planType === "custom"
@@ -1171,10 +1305,14 @@
                             ? ((diff / best.maxDmg) * 100).toFixed(1)
                             : 0;
 
-                    els.display.diffText.innerHTML =
-                        diff > 0.001
-                            ? `<span class="text-rose-500">機会損失: ${Math.floor(diff).toLocaleString()} (-${diffPct}%)</span>`
-                            : `<span class="text-emerald-500">最適構成です (Loss: 0%)</span>`;
+                    if (best.skipOptimization) {
+                        els.display.diffText.innerHTML = `<span class="text-slate-500">最適化対象外 (ロジック/アノマリー または プライド無効)</span>`;
+                    } else {
+                        els.display.diffText.innerHTML =
+                            diff > 0.001
+                                ? `<span class="text-rose-500">機会損失: ${Math.floor(diff).toLocaleString()} (-${diffPct}%)</span>`
+                                : `<span class="text-emerald-500">最適構成です (Loss: 0%)</span>`;
+                    }
 
                     const rows = current.steps
                         .map((step, i) => {
@@ -1204,11 +1342,12 @@
 
                     chartInstance.data.labels = labels;
                     chartInstance.data.datasets[0].data = data;
-                    chartInstance.data.datasets[1].data = labels.map((l) =>
-                        l === currentConc ? data[l] : null,
+                    chartInstance.data.datasets[1].data = labels.map(
+                        (l, idx) => (l === currentConc ? data[idx] : null),
                     );
-                    chartInstance.data.datasets[2].data = labels.map((l) =>
-                        l === simResult.bestConc ? data[l] : null,
+                    chartInstance.data.datasets[2].data = labels.map(
+                        (l, idx) =>
+                            l === simResult.bestConc ? data[idx] : null,
                     );
                     chartInstance.update();
                 };
@@ -1264,6 +1403,27 @@
                             superWrapper.classList.add("hidden");
                         }
                     }
+
+                    const coeffInputs = [
+                        document.getElementById("n_conc"),
+                        document.getElementById("n_cond"),
+                    ];
+                    const disableCoeff = plan === "logic" || plan === "anomaly";
+                    coeffInputs.forEach((inp) => {
+                        if (!inp) return;
+                        inp.disabled = disableCoeff;
+                        if (disableCoeff) {
+                            inp.classList.add(
+                                "opacity-50",
+                                "cursor-not-allowed",
+                            );
+                        } else {
+                            inp.classList.remove(
+                                "opacity-50",
+                                "cursor-not-allowed",
+                            );
+                        }
+                    });
                 };
 
                 const mapPlanParams = (state) => {
@@ -1280,34 +1440,42 @@
                         case "logic":
                             return {
                                 ...state,
-                                conc: state.genki,
-                                cond: state.impression,
-                                growth: state.pride,
-                                enthusiasm: state.motivation,
+                                conc: state.prideBuffEnabled
+                                    ? state.motivation
+                                    : 0,
+                                cond: state.prideBuffEnabled
+                                    ? state.impression
+                                    : 0,
+                                growth: 0,
+                                enthusiasm: 0,
                                 stance: 1,
                                 buff: state.buff,
                                 baseSources,
                             };
-                        case "anomaly":
+                        case "anomaly": {
+                            const growthDisabled = state.anomalyGrowthDisabled;
+                            const appliedGrowth = growthDisabled
+                                ? 0
+                                : state.growth;
                             return {
                                 ...state,
                                 conc: state.enthusiasm,
-                                cond: state.growth,
-                                growth: state.totalAllout,
-                                enthusiasm: 0,
+                                cond: appliedGrowth,
+                                growth:
+                                    appliedGrowth +
+                                    state.totalAllout * state.alloutRate,
+                                enthusiasm: state.enthusiasm,
                                 stance: state.stance,
                                 buff: state.buff,
                                 baseSources,
                             };
+                        }
                         case "custom":
                             return {
                                 ...state,
                                 conc: state.conc || state.genki,
                                 cond: state.cond || state.impression,
-                                growth:
-                                    state.growth +
-                                    state.pride +
-                                    state.totalAllout,
+                                growth: state.growth + state.totalAllout,
                                 enthusiasm: state.enthusiasm + state.motivation,
                                 buff: state.buff,
                                 baseSources,
@@ -1315,8 +1483,8 @@
                         default:
                             return {
                                 ...state,
-                                growth: state.growth,
-                                enthusiasm: state.enthusiasm,
+                                growth: 0,
+                                enthusiasm: 0,
                                 stance: 1,
                                 buff: state.buff,
                                 baseSources,
