@@ -108,6 +108,80 @@
 
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 <div class="lg:col-span-4 space-y-4">
+                    <!-- Plan Type Selector -->
+                    <div
+                        class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-5 transition-colors duration-300"
+                    >
+                        <h2
+                            class="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase mb-4 border-b dark:border-slate-800 pb-2"
+                        >
+                            プラン / タイプ
+                        </h2>
+                        <div class="grid grid-cols-4 gap-2">
+                            <label class="cursor-pointer">
+                                <input
+                                    type="radio"
+                                    name="plan_type"
+                                    value="sense"
+                                    class="peer sr-only"
+                                    checked
+                                />
+                                <div
+                                    class="rounded-lg border border-slate-200 dark:border-slate-700 p-2 text-center peer-checked:border-indigo-500 peer-checked:bg-indigo-50 dark:peer-checked:bg-indigo-900/20 peer-checked:text-indigo-600 dark:peer-checked:text-indigo-300 transition-all hover:bg-slate-50 dark:hover:bg-slate-800"
+                                >
+                                    <span class="font-bold text-xs sm:text-sm"
+                                        >センス</span
+                                    >
+                                </div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input
+                                    type="radio"
+                                    name="plan_type"
+                                    value="logic"
+                                    class="peer sr-only"
+                                />
+                                <div
+                                    class="rounded-lg border border-slate-200 dark:border-slate-700 p-2 text-center peer-checked:border-indigo-500 peer-checked:bg-indigo-50 dark:peer-checked:bg-indigo-900/20 peer-checked:text-indigo-600 dark:peer-checked:text-indigo-300 transition-all hover:bg-slate-50 dark:hover:bg-slate-800"
+                                >
+                                    <span class="font-bold text-xs sm:text-sm"
+                                        >ロジック</span
+                                    >
+                                </div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input
+                                    type="radio"
+                                    name="plan_type"
+                                    value="anomaly"
+                                    class="peer sr-only"
+                                />
+                                <div
+                                    class="rounded-lg border border-slate-200 dark:border-slate-700 p-2 text-center peer-checked:border-indigo-500 peer-checked:bg-indigo-50 dark:peer-checked:bg-indigo-900/20 peer-checked:text-indigo-600 dark:peer-checked:text-indigo-300 transition-all hover:bg-slate-50 dark:hover:bg-slate-800"
+                                >
+                                    <span class="font-bold text-xs sm:text-sm"
+                                        >アノマリー</span
+                                    >
+                                </div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input
+                                    type="radio"
+                                    name="plan_type"
+                                    value="custom"
+                                    class="peer sr-only"
+                                />
+                                <div
+                                    class="rounded-lg border border-slate-200 dark:border-slate-700 p-2 text-center peer-checked:border-indigo-500 peer-checked:bg-indigo-50 dark:peer-checked:bg-indigo-900/20 peer-checked:text-indigo-600 dark:peer-checked:text-indigo-300 transition-all hover:bg-slate-50 dark:hover:bg-slate-800"
+                                >
+                                    <span class="font-bold text-xs sm:text-sm"
+                                        >カスタム</span
+                                    >
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
                     <div
                         class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-5 transition-colors duration-300"
                     >
@@ -143,7 +217,11 @@
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-3 mb-3">
+                        <div
+                            id="row_sense"
+                            data-plan-group="sense custom"
+                            class="grid grid-cols-2 gap-3 mb-3"
+                        >
                             <div>
                                 <label
                                     class="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1"
@@ -171,7 +249,93 @@
                         </div>
 
                         <div
-                            class="grid grid-cols-2 gap-3 mb-3 pt-3 border-t border-slate-100 dark:border-slate-800"
+                            id="row_logic"
+                            data-plan-group="logic custom"
+                            class="grid grid-cols-2 gap-3 mb-3 pt-3 border-t border-slate-100 dark:border-slate-800 hidden"
+                        >
+                            <div>
+                                <label
+                                    class="block text-xs font-bold text-emerald-600 dark:text-emerald-500 mb-1"
+                                    >元気</label
+                                >
+                                <input
+                                    type="number"
+                                    id="logic_genki"
+                                    value="50"
+                                    class="w-full p-2 border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-900/10 text-emerald-800 dark:text-emerald-200 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500 input-param"
+                                />
+                            </div>
+                            <div>
+                                <label
+                                    class="block text-xs font-bold text-sky-600 dark:text-sky-500 mb-1"
+                                    >やる気</label
+                                >
+                                <input
+                                    type="number"
+                                    id="logic_motivation"
+                                    value="50"
+                                    class="w-full p-2 border border-sky-200 dark:border-sky-900/50 bg-sky-50 dark:bg-sky-900/10 text-sky-800 dark:text-sky-200 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-sky-500 input-param"
+                                />
+                            </div>
+                            <div>
+                                <label
+                                    class="block text-xs font-bold text-indigo-600 dark:text-indigo-500 mb-1"
+                                    >好印象</label
+                                >
+                                <input
+                                    type="number"
+                                    id="logic_impression"
+                                    value="0"
+                                    class="w-full p-2 border border-indigo-200 dark:border-indigo-900/50 bg-indigo-50 dark:bg-indigo-900/10 text-indigo-800 dark:text-indigo-200 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 input-param"
+                                />
+                            </div>
+                            <div>
+                                <label
+                                    class="block text-xs font-bold text-fuchsia-600 dark:text-fuchsia-500 mb-1"
+                                    >プライド</label
+                                >
+                                <input
+                                    type="number"
+                                    id="logic_pride"
+                                    value="0"
+                                    class="w-full p-2 border border-fuchsia-200 dark:border-fuchsia-900/50 bg-fuchsia-50 dark:bg-fuchsia-900/10 text-fuchsia-800 dark:text-fuchsia-200 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-fuchsia-500 input-param"
+                                />
+                            </div>
+                        </div>
+                        <div
+                            data-plan-group="logic custom"
+                            class="mb-4 flex flex-col gap-2 bg-fuchsia-50 dark:bg-fuchsia-900/20 p-3 rounded-lg border border-fuchsia-100 dark:border-fuchsia-900/30"
+                        >
+                            <div class="flex items-center justify-between">
+                                <span
+                                    class="text-sm font-bold text-fuchsia-900 dark:text-fuchsia-300"
+                                    >プライドバフ</span
+                                >
+                                <div
+                                    class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in"
+                                >
+                                    <input
+                                        type="checkbox"
+                                        name="toggle"
+                                        id="pride_buff_toggle"
+                                        class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer peer checked:right-0 checked:border-fuchsia-600 right-4 top-0 transition-all duration-300"
+                                    />
+                                    <label
+                                        for="pride_buff_toggle"
+                                        class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 dark:bg-slate-600 cursor-pointer peer-checked:bg-fuchsia-600 transition-colors duration-300"
+                                    ></label>
+                                </div>
+                            </div>
+                            <p
+                                class="text-[11px] text-fuchsia-600 dark:text-fuchsia-300"
+                            >
+                                有効時、好印象とやる気の小さい方×2%をスコア上昇量増加に加算
+                            </p>
+                        </div>
+                        <div
+                            id="row_anomaly"
+                            data-plan-group="anomaly custom"
+                            class="grid grid-cols-2 gap-3 mb-3 pt-3 border-t border-slate-100 dark:border-slate-800 hidden"
                         >
                             <div>
                                 <label
@@ -197,6 +361,21 @@
                                     class="w-full p-2 border border-rose-200 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-900/10 text-rose-800 dark:text-rose-200 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-rose-500 input-param"
                                 />
                             </div>
+                            <div>
+                                <label
+                                    class="block text-xs font-bold text-teal-600 dark:text-teal-500 mb-1"
+                                    >累計全力値</label
+                                >
+                                <input
+                                    type="number"
+                                    id="actual_total_allout"
+                                    value="0"
+                                    class="w-full p-2 border border-teal-200 dark:border-teal-900/50 bg-teal-50 dark:bg-teal-900/10 text-teal-800 dark:text-teal-200 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500 input-param"
+                                />
+                            </div>
+                            <div class="col-span-2 text-[10px] text-slate-400">
+                                指針倍率は下部の「係数・環境設定」で設定します
+                            </div>
                         </div>
 
                         <div
@@ -205,7 +384,7 @@
                             <p
                                 class="text-xs text-slate-400 font-bold uppercase"
                             >
-                                合計リソース (集中+好調)
+                                合計リソース (プラン主要2項目)
                             </p>
                             <p
                                 class="text-xl font-black text-slate-700 dark:text-slate-200"
@@ -214,7 +393,7 @@
                                 0
                             </p>
                             <p class="text-[10px] text-slate-400 mt-1">
-                                ※成長・熱意は固定値として扱います
+                                ※主要2項目以外の値は固定値として扱います
                             </p>
                         </div>
                     </div>
@@ -229,16 +408,76 @@
                         </h2>
                         <div class="space-y-3">
                             <div>
-                                <label
-                                    class="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1"
-                                    >基礎スコア</label
+                                <div
+                                    class="flex items-center justify-between mb-1"
                                 >
+                                    <label
+                                        class="block text-xs font-bold text-slate-500 dark:text-slate-400"
+                                        >基礎スコア</label
+                                    >
+                                    <select
+                                        id="base_mode"
+                                        class="text-xs border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500 input-param"
+                                    >
+                                        <option value="fixed" selected>
+                                            固定値
+                                        </option>
+                                        <option
+                                            value="conc_percent"
+                                            data-plan-group="sense custom"
+                                        >
+                                            集中の%
+                                        </option>
+                                        <option
+                                            value="cond_percent"
+                                            data-plan-group="sense custom"
+                                        >
+                                            好調の%
+                                        </option>
+                                        <option
+                                            value="genki_percent"
+                                            data-plan-group="logic custom"
+                                        >
+                                            元気の%
+                                        </option>
+                                        <option
+                                            value="motivation_percent"
+                                            data-plan-group="logic custom"
+                                        >
+                                            やる気の%
+                                        </option>
+                                        <option
+                                            value="impression_percent"
+                                            data-plan-group="logic custom"
+                                        >
+                                            好印象の%
+                                        </option>
+                                        <option
+                                            value="allout_percent"
+                                            data-plan-group="anomaly custom"
+                                        >
+                                            累計全力値%
+                                        </option>
+                                    </select>
+                                </div>
                                 <input
                                     type="number"
                                     id="base"
                                     value="15"
+                                    step="0.1"
                                     class="w-full p-2 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 input-param"
                                 />
+                                <p class="text-[10px] text-slate-400 mt-1">
+                                    固定: 入力値そのまま / 集中%: 集中×入力% /
+                                    好調%: 好調×入力%。※%は小数も可
+                                </p>
+                                <p
+                                    id="resolved_base_note"
+                                    class="text-[10px] text-indigo-500 dark:text-indigo-300 mt-1"
+                                >
+                                    実際に計算に使われる基礎スコア:
+                                    （基礎スコアとモードに応じて自動算出）
+                                </p>
                             </div>
                             <div class="grid grid-cols-2 gap-3">
                                 <div>
@@ -269,18 +508,35 @@
                                 </div>
                             </div>
                             <div class="grid grid-cols-2 gap-3">
-                                <div>
+                                <div id="row_stance">
                                     <label
                                         class="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1"
                                         >指針倍率</label
                                     >
-                                    <input
-                                        type="number"
+                                    <select
                                         id="stance_mult"
-                                        value="1.0"
-                                        step="0.1"
                                         class="w-full p-2 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 input-param"
-                                    />
+                                    >
+                                        <option value="0">
+                                            のんびり x0.00
+                                        </option>
+                                        <option value="0.25">
+                                            温存2段階目 x0.25
+                                        </option>
+                                        <option value="0.5">
+                                            温存1段階目 x0.50
+                                        </option>
+                                        <option value="1" selected>
+                                            なし x1.00
+                                        </option>
+                                        <option value="2">
+                                            強気1段階目 x2.00
+                                        </option>
+                                        <option value="2.5">
+                                            強気2段階目 x2.50
+                                        </option>
+                                        <option value="3">全力 x3.00</option>
+                                    </select>
                                 </div>
                                 <div>
                                     <label
@@ -462,9 +718,38 @@
                     }
                 };
 
+                const resolveBase = (baseVal, mode, sources) => {
+                    const safe = sources || {};
+                    const {
+                        conc = 0,
+                        cond = 0,
+                        genki = 0,
+                        motivation = 0,
+                        impression = 0,
+                        totalAllout = 0,
+                    } = safe;
+                    switch (mode) {
+                        case "conc_percent":
+                            return conc * (baseVal / 100);
+                        case "cond_percent":
+                            return cond * (baseVal / 100);
+                        case "genki_percent":
+                            return genki * (baseVal / 100);
+                        case "motivation_percent":
+                            return motivation * (baseVal / 100);
+                        case "impression_percent":
+                            return impression * (baseVal / 100);
+                        case "allout_percent":
+                            return totalAllout * (baseVal / 100);
+                        default:
+                            return baseVal;
+                    }
+                };
+
                 const calculateDamage = (params) => {
                     const {
                         base,
+                        baseMode,
                         conc,
                         nConc,
                         cond,
@@ -475,11 +760,23 @@
                         growth,
                         enthusiasm,
                         isSuper,
+                        baseSources,
+                        planType,
+                        impression,
+                        motivation,
+                        prideBuffEnabled,
                     } = params;
                     const steps = [];
 
+                    const resolvedBase = resolveBase(
+                        base,
+                        baseMode ?? "fixed",
+                        baseSources ?? { conc, cond },
+                    );
+
                     // Step 1: 基礎値計算 (Ceil)
-                    const raw1 = base + conc * nConc + growth + enthusiasm;
+                    const raw1 =
+                        resolvedBase + conc * nConc + growth + enthusiasm;
                     const val1 = round(raw1, "ceil");
                     steps.push({ label: "基礎スコア", val: val1 });
 
@@ -487,11 +784,10 @@
                     let condMultBase = 0;
                     let labelPrefix = "通常";
                     if (isSuper) {
-                        if (cond > 0){
-                        condMultBase = 0.5 + cond / 10.0;
-                        labelPrefix = "絶好調";
-                        }
-                        else {
+                        if (cond > 0) {
+                            condMultBase = 0.5 + cond / 10.0;
+                            labelPrefix = "絶好調";
+                        } else {
                             condMultBase = 0;
                             labelPrefix = "通常";
                         }
@@ -507,7 +803,18 @@
                     steps.push({ label: `${labelPrefix}・指針`, val: val2 });
 
                     // Step 3: スコア上昇量増加バフ (Ceil)
-                    const raw3 = val2 * (1 + buff);
+                    const useCondAsImpression =
+                        planType === "logic" || planType === "custom";
+                    const effectiveImpression = useCondAsImpression
+                        ? (cond ?? 0)
+                        : (impression ?? 0);
+                    const prideBuff =
+                        prideBuffEnabled && useCondAsImpression
+                            ? 0.02 *
+                              Math.min(effectiveImpression, motivation ?? 0)
+                            : 0;
+                    const totalBuff = buff + prideBuff;
+                    const raw3 = val2 * (1 + totalBuff);
                     const val3 = round(raw3, "ceil");
                     steps.push({ label: "スコア上昇量増加", val: val3 });
 
@@ -516,7 +823,7 @@
                     const val4 = round(raw4, "ceil");
                     steps.push({ label: "最終ダメージ", val: val4 });
 
-                    return { final: val4, steps };
+                    return { final: val4, steps, resolvedBase };
                 };
 
                 const simulateOptimal = (params, totalRes) => {
@@ -532,6 +839,11 @@
                             ...params,
                             conc: c,
                             cond: currentCond,
+                            baseSources: {
+                                ...(params.baseSources || {}),
+                                conc: c,
+                                cond: currentCond,
+                            },
                         };
                         const res = calculateDamage(simParams);
 
@@ -615,7 +927,7 @@
 
                 const els = {
                     inputs: document.querySelectorAll(
-                        ".input-param, #is_super_cond",
+                        ".input-param, #is_super_cond, #pride_buff_toggle",
                     ),
                     themeBtn: document.getElementById("theme_toggle"),
                     display: {
@@ -626,28 +938,43 @@
                         optimalRatio: document.getElementById("optimal_ratio"),
                         diffText: document.getElementById("diff_text"),
                         stepTable: document.getElementById("step_table"),
+                        resolvedBaseNote:
+                            document.getElementById("resolved_base_note"),
                     },
                     chartCanvas: document.getElementById("optChart"),
                 };
 
                 const getState = () => {
                     const getVal = (id) =>
-                        parseFloat(document.getElementById(id).value) || 0;
+                        parseFloat(document.getElementById(id)?.value) || 0;
                     const getInt = (id) =>
-                        parseInt(document.getElementById(id).value) || 0;
+                        parseInt(document.getElementById(id)?.value) || 0;
+                    const planType = document.querySelector(
+                        'input[name="plan_type"]:checked',
+                    )?.value;
                     return {
+                        planType,
                         conc: getInt("actual_conc"),
                         cond: getInt("actual_cond"),
                         growth: getInt("actual_growth"),
                         enthusiasm: getInt("actual_enthusiasm"),
+                        genki: getInt("logic_genki"),
+                        motivation: getInt("logic_motivation"),
+                        impression: getInt("logic_impression"),
+                        pride: getInt("logic_pride"),
+                        totalAllout: getInt("actual_total_allout"),
                         isSuper:
                             document.getElementById("is_super_cond").checked,
                         base: getVal("base"),
+                        baseMode: document.getElementById("base_mode").value,
                         nConc: getVal("n_conc"),
                         nCond: getVal("n_cond"),
                         stance: getVal("stance_mult"),
                         buff: getVal("buff_rate") / 100,
                         turn: getVal("turn_bonus") / 100,
+                        prideBuffEnabled:
+                            document.getElementById("pride_buff_toggle")
+                                ?.checked || false,
                     };
                 };
 
@@ -655,6 +982,11 @@
                     ThemeManager.init();
                     initChart();
                     attachEvents();
+                    const selectedPlan =
+                        document.querySelector(
+                            'input[name="plan_type"]:checked',
+                        )?.value || "sense";
+                    updatePlanVisibility(selectedPlan);
                     update();
                 };
 
@@ -662,6 +994,17 @@
                     els.inputs.forEach((input) =>
                         input.addEventListener("input", update),
                     );
+                    document
+                        .getElementById("base_mode")
+                        .addEventListener("change", update);
+                    document
+                        .querySelectorAll('input[name="plan_type"]')
+                        .forEach((radio) =>
+                            radio.addEventListener("change", (e) => {
+                                updatePlanVisibility(e.target.value);
+                                update();
+                            }),
+                        );
 
                     els.themeBtn.addEventListener("click", () => {
                         ThemeManager.toggle();
@@ -759,17 +1102,41 @@
 
                 const update = () => {
                     const state = getState();
-                    const totalRes = state.conc + state.cond;
+                    const planAdjusted = mapPlanParams(state);
+                    const totalRes = planAdjusted.conc + planAdjusted.cond;
 
                     els.display.totalRes.innerText = totalRes;
-                    const currentResult = Calculator.calculateDamage(state);
+                    const currentResult =
+                        Calculator.calculateDamage(planAdjusted);
+                    const modeLabel =
+                        state.baseMode === "conc_percent"
+                            ? `集中% (${state.base.toFixed(2)}%)`
+                            : state.baseMode === "cond_percent"
+                              ? `好調% (${state.base.toFixed(2)}%)`
+                              : state.baseMode === "genki_percent"
+                                ? `元気% (${state.base.toFixed(2)}%)`
+                                : state.baseMode === "motivation_percent"
+                                  ? `やる気% (${state.base.toFixed(2)}%)`
+                                  : state.baseMode === "impression_percent"
+                                    ? `好印象% (${state.base.toFixed(2)}%)`
+                                    : state.baseMode === "allout_percent"
+                                      ? `累計全力値% (${state.base.toFixed(2)}%)`
+                                      : "固定値";
+                    if (els.display.resolvedBaseNote) {
+                        els.display.resolvedBaseNote.innerText = `実際に計算に使われる基礎スコア (${modeLabel}): ${Number(currentResult.resolvedBase.toFixed(2)).toLocaleString()}`;
+                    }
                     const simResult = Calculator.simulateOptimal(
-                        state,
+                        planAdjusted,
                         totalRes,
                     );
 
-                    renderResults(state, currentResult, simResult, totalRes);
-                    updateChartData(state.conc, simResult);
+                    renderResults(
+                        planAdjusted,
+                        currentResult,
+                        simResult,
+                        totalRes,
+                    );
+                    updateChartData(planAdjusted.conc, simResult);
                 };
 
                 const renderResults = (state, current, best, totalRes) => {
@@ -779,8 +1146,24 @@
                     els.display.optimalDmg.innerText = Number(
                         best.maxDmg.toFixed(0),
                     ).toLocaleString();
-                    els.display.currentRatio.innerText = `集中 ${state.conc} : 好調 ${state.cond}`;
-                    els.display.optimalRatio.innerText = `集中 ${best.bestConc} : 好調 ${totalRes - best.bestConc}`;
+                    const labelA =
+                        state.planType === "logic"
+                            ? "元気"
+                            : state.planType === "anomaly"
+                              ? "熱意"
+                              : state.planType === "custom"
+                                ? "主要1"
+                                : "集中";
+                    const labelB =
+                        state.planType === "logic"
+                            ? "好印象"
+                            : state.planType === "anomaly"
+                              ? "成長"
+                              : state.planType === "custom"
+                                ? "主要2"
+                                : "好調";
+                    els.display.currentRatio.innerText = `${labelA} ${state.conc} : ${labelB} ${state.cond}`;
+                    els.display.optimalRatio.innerText = `${labelA} ${best.bestConc} : ${labelB} ${totalRes - best.bestConc}`;
 
                     const diff = best.maxDmg - current.final;
                     const diffPct =
@@ -828,6 +1211,117 @@
                         l === simResult.bestConc ? data[l] : null,
                     );
                     chartInstance.update();
+                };
+
+                const updatePlanVisibility = (plan) => {
+                    const groups =
+                        document.querySelectorAll("[data-plan-group]");
+                    groups.forEach((el) => {
+                        const plans = el.dataset.planGroup.split(" ");
+                        if (plan === "custom" || plans.includes(plan)) {
+                            el.classList.remove("hidden");
+                        } else {
+                            el.classList.add("hidden");
+                        }
+                    });
+                    const baseSelect = document.getElementById("base_mode");
+                    const baseOptions = document.querySelectorAll(
+                        "#base_mode option[data-plan-group]",
+                    );
+                    let mustResetBase = false;
+                    baseOptions.forEach((opt) => {
+                        const plans = opt.dataset.planGroup.split(" ");
+                        if (plan === "custom" || plans.includes(plan)) {
+                            opt.classList.remove("hidden");
+                        } else {
+                            opt.classList.add("hidden");
+                            if (baseSelect?.value === opt.value) {
+                                mustResetBase = true;
+                            }
+                        }
+                    });
+                    if (mustResetBase && baseSelect) {
+                        baseSelect.value = "fixed";
+                    }
+                    const stanceRow = document.getElementById("row_stance");
+                    if (stanceRow) {
+                        if (plan === "anomaly" || plan === "custom") {
+                            stanceRow.classList.remove("hidden");
+                        } else {
+                            stanceRow.classList.add("hidden");
+                            const stanceInput =
+                                document.getElementById("stance_mult");
+                            if (stanceInput) stanceInput.value = "1";
+                        }
+                    }
+                    const superWrapper = document
+                        .getElementById("is_super_cond")
+                        ?.closest(".mb-4");
+                    if (superWrapper) {
+                        if (plan === "sense" || plan === "custom") {
+                            superWrapper.classList.remove("hidden");
+                        } else {
+                            superWrapper.classList.add("hidden");
+                        }
+                    }
+                };
+
+                const mapPlanParams = (state) => {
+                    const baseSources = {
+                        conc: state.conc,
+                        cond: state.cond,
+                        genki: state.genki,
+                        motivation: state.motivation,
+                        impression: state.impression,
+                        totalAllout: state.totalAllout,
+                    };
+
+                    switch (state.planType) {
+                        case "logic":
+                            return {
+                                ...state,
+                                conc: state.genki,
+                                cond: state.impression,
+                                growth: state.pride,
+                                enthusiasm: state.motivation,
+                                stance: 1,
+                                buff: state.buff,
+                                baseSources,
+                            };
+                        case "anomaly":
+                            return {
+                                ...state,
+                                conc: state.enthusiasm,
+                                cond: state.growth,
+                                growth: state.totalAllout,
+                                enthusiasm: 0,
+                                stance: state.stance,
+                                buff: state.buff,
+                                baseSources,
+                            };
+                        case "custom":
+                            return {
+                                ...state,
+                                conc: state.conc || state.genki,
+                                cond: state.cond || state.impression,
+                                growth:
+                                    state.growth +
+                                    state.pride +
+                                    state.totalAllout,
+                                enthusiasm: state.enthusiasm + state.motivation,
+                                buff: state.buff,
+                                baseSources,
+                            };
+                        default:
+                            return {
+                                ...state,
+                                growth: state.growth,
+                                enthusiasm: state.enthusiasm,
+                                stance: 1,
+                                buff: state.buff,
+                                baseSources,
+                            };
+                    }
                 };
 
                 return { init };
