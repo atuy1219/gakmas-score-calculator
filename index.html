@@ -3,7 +3,11 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>学マス ダメージ最適化 & 比較</title>
+            <title>学マス ダメージ最適化 & 比較</title>
+            <link rel="manifest" href="./manifest.json">
+            <meta name="theme-color" content="#1976d2">
+            <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+            <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link
@@ -1497,5 +1501,18 @@
 
             document.addEventListener("DOMContentLoaded", App.init);
         </script>
-    </body>
+        <script>
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                    navigator.serviceWorker.register('./service-worker.js')
+                        .then(function(registration) {
+                            console.log('ServiceWorker registration successful:', registration);
+                        })
+                        .catch(function(error) {
+                            console.log('ServiceWorker registration failed:', error);
+                        });
+                });
+            }
+        </script>
+        </body>
 </html>
