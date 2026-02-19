@@ -1,10 +1,10 @@
 const CACHE_NAME = 'gakmas-cache-v1';
 const urlsToCache = [
-  '/gakmas-score-calculator/',
-  '/gakmas-score-calculator/index.html',
-  '/gakmas-score-calculator/manifest.json',
-  '/gakmas-score-calculator/icon-192.png',
-  '/gakmas-score-calculator/icon-512.png'
+  './',
+  './index.html',
+  './manifest.json',
+  './icon-192.png',
+  './icon-512.png'
 ];
 
 self.addEventListener('install', event => {
