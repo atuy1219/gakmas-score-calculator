@@ -855,9 +855,13 @@
                         baseSources ?? { conc, cond },
                     );
 
+                    // 好印象強化 (通常1.0, 50%なら1.5)
+                    const impBoostMult = 1 + (impressionBoost || 0) / 100;
+                    const resolvedBaseBoosted = resolvedBase * impBoostMult;
+
                     // Step 1: 基礎値計算 (Ceil)
                     const raw1 =
-                        resolvedBase +
+                        resolvedBaseBoosted +
                         conc * effectiveNConc +
                         growth +
                         enthusiasm;
@@ -882,12 +886,10 @@
                         }
                     }
                     const totalCondMult = 1 + condMultBase * effectiveNCond;
-                    // 好印象強化 (通常1.0, 50%なら1.5)
-                    const impBoostMult = 1 + (impressionBoost || 0) / 100;
                     
-                    const raw2 = val1 * totalCondMult * stance * impBoostMult;
+                    const raw2 = val1 * totalCondMult * stance;
                     const val2 = raw2;
-                    steps.push({ label: `${labelPrefix}・指針・好印象強化`, val: val2 });
+                    steps.push({ label: `${labelPrefix}・指針`, val: val2 });
 
                     // Step 3: スコア上昇量増加バフ (Ceil)
                     const prideBuff = prideBuffEnabled
@@ -908,10 +910,10 @@
 
                     // 計算式表示用の文字列生成
                     const formulaParts = [];
-                    formulaParts.push(`1. 基礎: ceil(${resolvedBase.toFixed(1)} + ${conc}×${effectiveNConc} + ${growth} + ${enthusiasm}) = ${val1}`);
+                    formulaParts.push(`1. 基礎: ceil(${resolvedBase.toFixed(1)}${impBoostMult !== 1 ? `×${impBoostMult}` : ''} + ${conc}×${effectiveNConc} + ${growth} + ${enthusiasm}) = ${val1}`);
                     
                     const condStr = effectiveNCond > 0 ? `(1 + ${condMultBase}×${effectiveNCond})` : "1";
-                    formulaParts.push(`2. 倍率: ${val1} × ${condStr} × ${stance} × ${impBoostMult} = ${val2.toFixed(2)}`);
+                    formulaParts.push(`2. 倍率: ${val1} × ${condStr} × ${stance} = ${val2.toFixed(2)}`);
                     
                     formulaParts.push(`3. バフ: ceil(${val2.toFixed(2)} × (1 + ${totalBuff.toFixed(3)})) = ${val3}`);
                     formulaParts.push(`4. 最終: ceil(${val3} × ${turn}) = ${val4}`);
