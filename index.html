@@ -636,14 +636,16 @@
                 </div>
 
                 <div class="lg:col-span-8 space-y-6">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="damage_display_container">
                         <div
+                            id="current_dmg_box"
                             class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 border-l-4 border-l-slate-300 dark:border-l-slate-600 transition-colors duration-300"
                         >
                             <div class="flex justify-between items-start">
                                 <div>
                                     <p
                                         class="text-xs font-bold text-slate-400 uppercase tracking-wider"
+                                        id="current_dmg_label"
                                     >
                                         Current Damage
                                     </p>
@@ -669,6 +671,7 @@
                             </div>
                         </div>
                         <div
+                            id="optimal_dmg_box"
                             class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 border-l-4 border-l-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/10 transition-colors duration-300"
                         >
                             <div class="flex justify-between items-start">
@@ -1165,7 +1168,10 @@
                         totalResBox: document.getElementById("total_res_box"),
                         totalRes: document.getElementById("total_res_display"),
                         currentDmg: document.getElementById("current_dmg"),
+                        currentLabel: document.getElementById("current_dmg_label"),
                         optimalDmg: document.getElementById("optimal_dmg"),
+                        optimalBox: document.getElementById("optimal_dmg_box"),
+                        damageContainer: document.getElementById("damage_display_container"),
                         currentRatio: document.getElementById("current_ratio"),
                         optimalRatio: document.getElementById("optimal_ratio"),
                         diffText: document.getElementById("diff_text"),
@@ -1451,8 +1457,20 @@
                               : state.planType === "custom"
                                 ? "好調"
                                 : "好調";
-                    els.display.currentRatio.innerText = `${labelA} ${state.conc} : ${labelB} ${state.cond}`;
-                    els.display.optimalRatio.innerText = `${labelA} ${best.bestConc} : ${labelB} ${totalRes - best.bestConc}`;
+                    
+                    let currentRatioText = `${labelA} ${state.conc} : ${labelB} ${state.cond}`;
+                    let optimalRatioText = `${labelA} ${best.bestConc} : ${labelB} ${totalRes - best.bestConc}`;
+
+                    if (state.planType === "custom" && state.prideBuffEnabled) {
+                        currentRatioText += ` / やる気 ${state.motivation || 0} : 好印象 ${state.impression || 0}`;
+                        if (best.bestRes2 !== null) {
+                             const totalRes2 = (state.motivation || 0) + (state.impression || 0);
+                             optimalRatioText += ` / やる気 ${best.bestRes2} : 好印象 ${totalRes2 - best.bestRes2}`;
+                        }
+                    }
+
+                    els.display.currentRatio.innerText = currentRatioText;
+                    els.display.optimalRatio.innerText = optimalRatioText;
 
                     const diff = best.maxDmg - current.final;
                     const diffPct =
@@ -1460,9 +1478,22 @@
                             ? ((diff / best.maxDmg) * 100).toFixed(1)
                             : 0;
 
+                    // Toggle Optimal Box visibility based on skipOptimization
+                    const damageContainer = document.getElementById("damage_display_container");
+                    const optimalBox = document.getElementById("optimal_dmg_box");
+                    const currentLabel = document.getElementById("current_dmg_label");
+
                     if (best.skipOptimization) {
+                        if (damageContainer) damageContainer.classList.remove("md:grid-cols-2");
+                        if (optimalBox) optimalBox.classList.add("hidden");
+                         // Optional: Change label to just "Damage" or "Score" if single view
+                         if (currentLabel) currentLabel.innerText = "Damage / Score";
                         els.display.diffText.innerHTML = `<span class="text-slate-500">最適化対象外 (ロジック/アノマリー または プライド無効)</span>`;
                     } else {
+                        if (damageContainer) damageContainer.classList.add("md:grid-cols-2");
+                        if (optimalBox) optimalBox.classList.remove("hidden");
+                        if (currentLabel) currentLabel.innerText = "Current Damage";
+
                         els.display.diffText.innerHTML =
                             diff > 0.001
                                 ? `<span class="text-rose-500">機会損失: ${Math.floor(diff).toLocaleString()} (-${diffPct}%)</span>`
