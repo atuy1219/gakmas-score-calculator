@@ -329,6 +329,18 @@
                             </div>
                             <div>
                                 <label
+                                    class="block text-xs font-bold text-pink-600 dark:text-pink-500 mb-1"
+                                    >好印象強化 (%)</label
+                                >
+                                <input
+                                    type="number"
+                                    id="impression_boost"
+                                    value="0"
+                                    class="w-full p-2 border border-pink-200 dark:border-pink-900/50 bg-pink-50 dark:bg-pink-900/10 text-pink-800 dark:text-pink-200 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-pink-500 input-param"
+                                />
+                            </div>
+                            <div>
+                                <label
                                     class="block text-xs font-bold text-sky-600 dark:text-sky-500 mb-1"
                                     >やる気</label
                                 >
@@ -824,6 +836,7 @@
                         impression,
                         motivation,
                         prideBuffEnabled,
+                        impressionBoost,
                     } = params;
                     const steps = [];
                     const isLogicLike =
@@ -864,9 +877,12 @@
                         }
                     }
                     const totalCondMult = 1 + condMultBase * effectiveNCond;
-                    const raw2 = val1 * totalCondMult * stance;
+                    // 好印象強化 (通常1.0, 50%なら1.5)
+                    const impBoostMult = 1 + (impressionBoost || 0) / 100;
+                    
+                    const raw2 = val1 * totalCondMult * stance * impBoostMult;
                     const val2 = raw2;
-                    steps.push({ label: `${labelPrefix}・指針`, val: val2 });
+                    steps.push({ label: `${labelPrefix}・指針・好印象強化`, val: val2 });
 
                     // Step 3: スコア上昇量増加バフ (Ceil)
                     const prideBuff = prideBuffEnabled
@@ -1162,6 +1178,7 @@
                         genki: getInt("logic_genki"),
                         motivation: getInt("logic_motivation"),
                         impression: getInt("logic_impression"),
+                        impressionBoost: planType === 'logic' || planType === 'custom' ? getVal("impression_boost") : 0,
                         totalAllout: getInt("actual_total_allout"),
                         isSuper:
                             document.getElementById("is_super_cond").checked,
@@ -1624,9 +1641,9 @@
                             return {
                                 ...state,
                                 conc: state.conc || state.genki,
-                                cond: state.cond || state.impression,
+                                cond: state.cond,
                                 growth: state.growth + state.totalAllout,
-                                enthusiasm: state.enthusiasm + state.motivation,
+                                enthusiasm: state.enthusiasm,
                                 buff: state.buff,
                                 baseSources,
                             };
