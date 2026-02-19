@@ -703,6 +703,9 @@
                         <div class="h-64 relative w-full">
                             <canvas id="optChart"></canvas>
                         </div>
+                        <div class="h-64 relative w-full mt-8 hidden" id="optChart2Container">
+                            <canvas id="optChart2"></canvas>
+                        </div>
                     </div>
 
                     <div
@@ -885,8 +888,18 @@
                     let bestConc = 0;
                     let bestResult = null;
 
+                    const isCustom = params.planType === "custom";
+
+                    // Customの場合のロジック用変数
+                    let maxDmg2 = -1;
+                    let bestRes2 = 0; // Logic側のX軸 (Motivation)
+                    const chartData2 = { labels: [], data: [] };
+
                     const isLogicPride =
                         params.planType === "logic" && params.prideBuffEnabled;
+                    
+                    // Main optimization target (Sense / Logic / Custom-Main)
+                    // Customの場合は Conc+Cond をまず計算
                     const totalRes =
                         typeof totalResOverride === "number"
                             ? totalResOverride
@@ -901,6 +914,7 @@
                         params.planType === "anomaly" ||
                         (params.planType === "logic" &&
                             !params.prideBuffEnabled);
+                            
                     if (skipOptimization) {
                         const currentResult = calculateDamage(params);
                         chartData.labels.push(
@@ -918,29 +932,37 @@
                         };
                     }
 
+                    // 1. Main Optimization Loop
+                    // Sense, Logic(if pride), Custom(Conc/Cond)
                     for (let c = 0; c <= totalRes; c++) {
-                        const currentCond = totalRes - c;
-                        const simParams = isLogicPride
-                            ? {
+                        const currentResB = totalRes - c;
+                        
+                        let simParams;
+                        if (isLogicPride) {
+                             simParams = {
                                   ...params,
                                   motivation: c,
-                                  impression: currentCond,
+                                  impression: currentResB,
                                   baseSources: {
                                       ...(params.baseSources || {}),
                                       motivation: c,
-                                      impression: currentCond,
+                                      impression: currentResB,
                                   },
-                              }
-                            : {
+                              };
+                        } else {
+                            // Sense or Custom (Main loop is Conc/Cond)
+                             simParams = {
                                   ...params,
                                   conc: c,
-                                  cond: currentCond,
+                                  cond: currentResB,
                                   baseSources: {
                                       ...(params.baseSources || {}),
                                       conc: c,
-                                      cond: currentCond,
+                                      cond: currentResB,
                                   },
                               };
+                        }
+                        
                         const res = calculateDamage(simParams);
 
                         chartData.labels.push(c);
@@ -953,12 +975,80 @@
                         }
                     }
 
+                    // 2. Secondary Optimization Loop for Custom (Motiv/Impression)
+                    if (isCustom) {
+                        const totalRes2 = (params.motivation || 0) + (params.impression || 0);
+                        const baseEnthusiasm = (params.enthusiasm || 0) - (params.motivation || 0);
+                        // baseCond logic is tricky because customized cond = (cond || impression).
+                        // If cond was derived from impression, we should update it.
+                        // If it came from explicit cond, update might not make sense unless we assume custom mode relationship.
+                        // For simplicity, we assume custom mode users want to see impact on mapped stats too.
+                        
+                        for (let m = 0; m <= totalRes2; m++) {
+                            const currentImp = totalRes2 - m;
+                            
+                            // Re-evaluate dependent params based on new motivation/impression
+                            // enthusiasm = base + motivation
+                            const newEnthusiasm = baseEnthusiasm + m;
+                            
+                            // cond = (original cond input) || impression. 
+                            // If params.cond == params.impression (and params.cond was 0 originally), then it tracks.
+                            // But we don't know original inputs here easily.
+                            // Heuristic: If we are optimizing impression, and plan is custom, update cond if it seems linked?
+                            // Safest is to just update impression and motivation, and let the user understand mappings, 
+                            // BUT enthusiasm definitely needs update as it sums motivation.
+                            // For cond, if we don't update it, impression only affects pride buff.
+                            // Given request "Motivation, Impression graph", likely implies their effects.
+                            // If impression maps to cond in custom, we should likely update cond too IF it was impression-based?
+                            // Let's assume for this graph, we hold explicit Cond constant, but if Cond was inferred from Impression, it changes?
+                            // Actually, calculating derived stats is best done by mapPlanParams if we had state.
+                            // Without state, we update what we can.
+                            
+                            const simParams2 = {
+                                ...params,
+                                motivation: m,
+                                enthusiasm: newEnthusiasm,
+                                impression: currentImp,
+                                baseSources: {
+                                    ...(params.baseSources || {}),
+                                    motivation: m,
+                                    impression: currentImp,
+                                },
+                            };
+                            
+                            // If cond reflects impression in custom logic (cond || impression)
+                            // We can't know for sure if cond came from impression or explicit cond without state.
+                            // However, if we assume the user wants to see "Impression's effect", and impression affects cond...
+                            // Let's try to update cond if it matches old impression?
+                            if ((params.cond || 0) === (params.impression || 0) && (params.impression || 0) !== 0) {
+                                 simParams2.cond = currentImp; // Linking them
+                            } else if ((params.cond || 0) === 0 && (params.impression || 0) === 0) {
+                                  // If both were 0, maybe they are linked?
+                                 simParams2.cond = currentImp;
+                            }
+                            
+                            const res2 = calculateDamage(simParams2);
+                            
+                            chartData2.labels.push(m);
+                            chartData2.data.push(res2.final);
+
+                            if (res2.final > maxDmg2) {
+                                maxDmg2 = res2.final;
+                                bestRes2 = m;
+                            }
+                        }
+                    }
+
                     return {
                         maxDmg,
                         bestConc,
                         bestResult,
                         chartData,
+                        chartData2: isCustom ? chartData2 : null,
+                        maxDmg2: isCustom ? maxDmg2 : null,
+                        bestRes2: isCustom ? bestRes2 : null,
                         skipOptimization: false,
+                        isCustom
                     };
                 };
 
@@ -1026,6 +1116,7 @@
              */
             const App = (() => {
                 let chartInstance = null;
+                let chartInstance2 = null;
 
                 const els = {
                     inputs: document.querySelectorAll(
@@ -1045,6 +1136,8 @@
                             document.getElementById("resolved_base_note"),
                     },
                     chartCanvas: document.getElementById("optChart"),
+                    chartCanvas2: document.getElementById("optChart2"),
+                    chart2Container: document.getElementById("optChart2Container"),
                 };
 
                 const getState = () => {
@@ -1121,9 +1214,10 @@
 
                 const initChart = () => {
                     const ctx = els.chartCanvas.getContext("2d");
+                    const ctx2 = els.chartCanvas2.getContext("2d");
                     const colors = ThemeManager.getChartColors();
 
-                    chartInstance = new Chart(ctx, {
+                    const createConfig = (xLabel) => ({
                         type: "line",
                         data: {
                             labels: [],
@@ -1174,7 +1268,7 @@
                                 x: {
                                     title: {
                                         display: true,
-                                        text: "集中 (Conc) の値",
+                                        text: xLabel,
                                         color: colors.text,
                                         font: { size: 10 },
                                     },
@@ -1191,20 +1285,24 @@
                             },
                         },
                     });
+
+                    chartInstance = new Chart(ctx, createConfig("集中 (Conc) の値"));
+                    chartInstance2 = new Chart(ctx2, createConfig("やる気 (Motiv) の値"));
                 };
 
                 // テーマ切り替え時にチャートの設定を更新
                 const updateChartTheme = () => {
-                    if (!chartInstance) return;
                     const colors = ThemeManager.getChartColors();
 
-                    chartInstance.options.scales.x.title.color = colors.text;
-                    chartInstance.options.scales.x.ticks.color = colors.text;
-                    chartInstance.options.scales.y.ticks.color = colors.text;
-                    chartInstance.options.scales.y.grid.color = colors.grid;
-                    chartInstance.data.datasets[0].borderColor = colors.line;
-
-                    chartInstance.update();
+                    [chartInstance, chartInstance2].forEach(chart => {
+                        if (!chart) return;
+                        chart.options.scales.x.title.color = colors.text;
+                        chart.options.scales.x.ticks.color = colors.text;
+                        chart.options.scales.y.ticks.color = colors.text;
+                        chart.options.scales.y.grid.color = colors.grid;
+                        chart.data.datasets[0].borderColor = colors.line;
+                        chart.update();
+                    });
                 };
 
                 const getTotalRes = (state, planAdjusted) => {
@@ -1268,7 +1366,20 @@
                         simResult,
                         totalRes,
                     );
-                    updateChartData(planAdjusted.conc, simResult);
+                    
+                    if (planAdjusted.planType === 'custom') {
+                        if (els.chart2Container) els.chart2Container.classList.remove('hidden');
+                        if (chartInstance) chartInstance.options.scales.x.title.text = "集中 (Conc)";
+                        if (chartInstance2) chartInstance2.options.scales.x.title.text = "やる気 (Motivation)";
+                    } else {
+                        if (els.chart2Container) els.chart2Container.classList.add('hidden');
+                        if (chartInstance) {
+                             const isLogicPride = planAdjusted.planType === "logic" && planAdjusted.prideBuffEnabled;
+                             chartInstance.options.scales.x.title.text = isLogicPride ? "やる気 (Motivation)" : "集中 (Conc)";
+                         }
+                    }
+
+                    updateChartData(planAdjusted, simResult);
                 };
 
                 const renderResults = (state, current, best, totalRes) => {
@@ -1288,7 +1399,7 @@
                             : state.planType === "anomaly"
                               ? "熱意"
                               : state.planType === "custom"
-                                ? "主要1"
+                                ? "集中"
                                 : "集中";
                     const labelB =
                         state.planType === "logic"
@@ -1298,7 +1409,7 @@
                             : state.planType === "anomaly"
                               ? "成長"
                               : state.planType === "custom"
-                                ? "主要2"
+                                ? "好調"
                                 : "好調";
                     els.display.currentRatio.innerText = `${labelA} ${state.conc} : ${labelB} ${state.cond}`;
                     els.display.optimalRatio.innerText = `${labelA} ${best.bestConc} : ${labelB} ${totalRes - best.bestConc}`;
@@ -1320,7 +1431,9 @@
 
                     const rows = current.steps
                         .map((step, i) => {
-                            const optStep = best.bestResult.steps[i];
+                            const optStep = best.bestResult
+                                ? best.bestResult.steps[i]
+                                : step;
                             const isDifferent =
                                 Math.abs(step.val - optStep.val) > 0.001;
                             const diffClass = isDifferent
@@ -1339,21 +1452,49 @@
                     els.display.stepTable.innerHTML = rows;
                 };
 
-                const updateChartData = (currentConc, simResult) => {
+                const updateChartData = (planAdjusted, simResult) => {
                     if (!chartInstance) return;
+                    
                     const labels = simResult.chartData.labels;
                     const data = simResult.chartData.data;
+                    const currentConc = planAdjusted.planType === 'logic' && planAdjusted.prideBuffEnabled 
+                        ? planAdjusted.motivation 
+                        : planAdjusted.conc;
 
                     chartInstance.data.labels = labels;
                     chartInstance.data.datasets[0].data = data;
-                    chartInstance.data.datasets[1].data = labels.map(
-                        (l, idx) => (l === currentConc ? data[idx] : null),
+                    
+                    // Current Point
+                    chartInstance.data.datasets[1].data = labels.map((l) =>
+                        Math.abs(l - currentConc) < 0.1 ? data[labels.indexOf(l)] : null
                     );
-                    chartInstance.data.datasets[2].data = labels.map(
-                        (l, idx) =>
-                            l === simResult.bestConc ? data[idx] : null,
+                    
+                    // Best Point
+                    chartInstance.data.datasets[2].data = labels.map((l) =>
+                        Math.abs(l - simResult.bestConc) < 0.1 ? simResult.maxDmg : null
                     );
                     chartInstance.update();
+
+                    // Chart 2 Update (Custom Only)
+                    if (simResult.isCustom && chartInstance2 && simResult.chartData2) {
+                        const labels2 = simResult.chartData2.labels;
+                        const data2 = simResult.chartData2.data;
+                        const currentMotiv = planAdjusted.motivation;
+
+                        chartInstance2.data.labels = labels2;
+                        chartInstance2.data.datasets[0].data = data2;
+                        
+                        // Current Point
+                        chartInstance2.data.datasets[1].data = labels2.map((l) =>
+                            Math.abs(l - currentMotiv) < 0.1 ? data2[labels2.indexOf(l)] : null
+                        );
+                        
+                        // Best Point
+                        chartInstance2.data.datasets[2].data = labels2.map((l) =>
+                            Math.abs(l - simResult.bestRes2) < 0.1 ? simResult.maxDmg2 : null
+                        );
+                        chartInstance2.update();
+                    }
                 };
 
                 const updatePlanVisibility = (plan) => {
