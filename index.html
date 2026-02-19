@@ -764,6 +764,11 @@
                                 id="step_table"
                             ></tbody>
                         </table>
+                        
+                        <div class="mt-4 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg text-xs font-mono text-slate-500 dark:text-slate-400 break-all">
+                            <p class="font-bold mb-1 text-slate-400 dark:text-slate-500 uppercase tracking-wider">計算式 (現在の構成)</p>
+                            <div id="formula_display"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -901,7 +906,17 @@
                     const val4 = round(raw4, "ceil");
                     steps.push({ label: "最終ダメージ", val: val4 });
 
-                    return { final: val4, steps, resolvedBase };
+                    // 計算式表示用の文字列生成
+                    const formulaParts = [];
+                    formulaParts.push(`1. 基礎: ceil(${resolvedBase.toFixed(1)} + ${conc}×${effectiveNConc} + ${growth} + ${enthusiasm}) = ${val1}`);
+                    
+                    const condStr = effectiveNCond > 0 ? `(1 + ${condMultBase}×${effectiveNCond})` : "1";
+                    formulaParts.push(`2. 倍率: ${val1} × ${condStr} × ${stance} × ${impBoostMult} = ${val2.toFixed(2)}`);
+                    
+                    formulaParts.push(`3. バフ: ceil(${val2.toFixed(2)} × (1 + ${totalBuff.toFixed(3)})) = ${val3}`);
+                    formulaParts.push(`4. 最終: ceil(${val3} × ${turn}) = ${val4}`);
+
+                    return { final: val4, steps, resolvedBase, formula: formulaParts.join("<br>") };
                 };
 
                 const simulateOptimal = (params, totalResOverride) => {
@@ -1155,6 +1170,7 @@
                         stepTable: document.getElementById("step_table"),
                         resolvedBaseNote:
                             document.getElementById("resolved_base_note"),
+                        formula: document.getElementById("formula_display"),
                     },
                     chartCanvas: document.getElementById("optChart"),
                     chartCanvas2: document.getElementById("optChart2"),
@@ -1471,6 +1487,11 @@
             `;
                         })
                         .join("");
+
+                    if (els.display.formula) {
+                        const formula = current.formula || "";
+                        els.display.formula.innerHTML = formula;
+                    }
                     els.display.stepTable.innerHTML = rows;
                 };
 
