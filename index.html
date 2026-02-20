@@ -322,18 +322,6 @@
                             </div>
                             <div>
                                 <label
-                                    class="block text-xs font-bold text-pink-600 dark:text-pink-500 mb-1"
-                                    >好印象強化 (%)</label
-                                >
-                                <input
-                                    type="number"
-                                    id="impression_boost"
-                                    value="0"
-                                    class="w-full p-2 border border-pink-200 dark:border-pink-900/50 bg-pink-50 dark:bg-pink-900/10 text-pink-800 dark:text-pink-200 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-pink-500 input-param"
-                                />
-                            </div>
-                            <div>
-                                <label
                                     class="block text-xs font-bold text-sky-600 dark:text-sky-500 mb-1"
                                     >やる気</label
                                 >
@@ -527,6 +515,18 @@
                                         class="w-full p-2 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 input-param"
                                     />
                                 </div>
+                            </div>
+                            <div data-plan-group="sense custom">
+                                <label
+                                    class="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1"
+                                    >集中強化 (%)</label
+                                >
+                                <input
+                                    type="number"
+                                    id="conc_boost"
+                                    value="0"
+                                    class="w-full p-2 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 input-param"
+                                />
                             </div>
                             <div class="grid grid-cols-2 gap-3">
                                 <div id="row_stance">
@@ -818,6 +818,70 @@
                     }
                 };
 
+                const isLogicLikePlan = (planType) =>
+                    planType === "logic" || planType === "anomaly";
+
+                const getConditionContext = (isSuper, cond) => {
+                    if (!isSuper) {
+                        return {
+                            condMultBase: cond > 0 ? 0.5 : 0,
+                            labelPrefix: cond > 0 ? "好調" : "通常",
+                        };
+                    }
+                    if (cond > 0) {
+                        return {
+                            condMultBase: 0.5 + cond / 10.0,
+                            labelPrefix: "絶好調",
+                        };
+                    }
+                    return { condMultBase: 0, labelPrefix: "通常" };
+                };
+
+                const getPrideBuff = ({ prideBuffEnabled, impression, motivation }) =>
+                    prideBuffEnabled
+                        ? Math.min(0.5, 0.02 * Math.min(impression ?? 0, motivation ?? 0))
+                        : 0;
+
+                const buildFormula = ({
+                    conc,
+                    effectiveNConc,
+                    concBoostMult,
+                    resolvedBase,
+                    growth,
+                    enthusiasm,
+                    val1,
+                    condMultBase,
+                    effectiveNCond,
+                    stance,
+                    val2,
+                    totalBuff,
+                    val3,
+                    turn,
+                    val4,
+                }) => {
+                    const formulaParts = [];
+                    const concBoostText = concBoostMult !== 1 ? `×${concBoostMult}` : "";
+                    const concCoeffExpr = `${conc}×${effectiveNConc}`;
+                    const concAfterExpr = `ceil(${concCoeffExpr})${concBoostText}`;
+                    const step1Expr = `${resolvedBase.toFixed(1)} + ${concAfterExpr} + ${growth} + ${enthusiasm}`;
+                    formulaParts.push(`1. 基礎: ${step1Expr} = ${val1.toFixed(2)}`);
+
+                    const condStr =
+                        effectiveNCond > 0
+                            ? `(1 + ${condMultBase}×${effectiveNCond})`
+                            : "1";
+                    const step2Expr = `${val1.toFixed(2)} × ${condStr} × ${stance}`;
+                    formulaParts.push(`2. 倍率: ${step2Expr} = ${val2.toFixed(2)}`);
+
+                    const step3Expr = `${val2.toFixed(2)} × (1 + ${totalBuff.toFixed(3)})`;
+                    formulaParts.push(`3. バフ: ceil(${step3Expr}) = ${val3.toFixed(2)}`);
+
+                    const step4Expr = `${val3.toFixed(2)} × ${turn}`;
+                    formulaParts.push(`4. 最終: ceil(${step4Expr}) = ${val4.toFixed(2)}`);
+
+                    return formulaParts.join("<br>");
+                };
+
                 const calculateDamage = (params) => {
                     const {
                         base,
@@ -837,11 +901,10 @@
                         impression,
                         motivation,
                         prideBuffEnabled,
-                        impressionBoost,
+                        concBoost,
                     } = params;
                     const steps = [];
-                    const isLogicLike =
-                        planType === "logic" || planType === "anomaly";
+                    const isLogicLike = isLogicLikePlan(planType);
                     const effectiveNConc = isLogicLike ? 0 : nConc;
                     const effectiveNCond = isLogicLike ? 0 : nCond;
 
@@ -851,49 +914,32 @@
                         baseSources ?? { conc, cond },
                     );
 
-                    // 好印象強化 (通常1.0, 50%なら1.5)
-                    const impBoostMult = 1 + (impressionBoost || 0) / 100;
-                    const resolvedBaseBoosted = resolvedBase * impBoostMult;
+                    const concBoostMult = 1 + (concBoost || 0) / 100;
 
-                    // Step 1: 基礎値計算 (Ceil)
+                    // Fixed: boostTiming="after", step1Mode="conc_after"
+                    const concCoeff = conc * effectiveNConc;
+                    const concTermFinal = round(concCoeff, "ceil") * concBoostMult;
+
                     const raw1 =
-                        resolvedBaseBoosted +
-                        conc * effectiveNConc +
-                        growth +
-                        enthusiasm;
-                    const val1 = round(raw1, "ceil");
+                        resolvedBase + concTermFinal + growth + enthusiasm;
+                    const val1 = raw1;
                     steps.push({ label: "基礎スコア", val: val1 });
 
-                    // Step 2: 好調・絶好調補正 & 指針 (None)
-                    let condMultBase = 0;
-                    let labelPrefix = "通常";
-                    if (isSuper) {
-                        if (cond > 0) {
-                            condMultBase = 0.5 + cond / 10.0;
-                            labelPrefix = "絶好調";
-                        } else {
-                            condMultBase = 0;
-                            labelPrefix = "通常";
-                        }
-                    } else {
-                        if (cond > 0) {
-                            condMultBase = 0.5;
-                            labelPrefix = "好調";
-                        }
-                    }
+                    const { condMultBase, labelPrefix } = getConditionContext(
+                        isSuper,
+                        cond,
+                    );
                     const totalCondMult = 1 + condMultBase * effectiveNCond;
                     
                     const raw2 = val1 * totalCondMult * stance;
                     const val2 = raw2;
                     steps.push({ label: `${labelPrefix}・指針`, val: val2 });
 
-                    // Step 3: スコア上昇量増加バフ (Ceil)
-                    const prideBuff = prideBuffEnabled
-                        ? Math.min(
-                              0.5,
-                              0.02 * Math.min(impression ?? 0, motivation ?? 0),
-                          )
-                        : 0;
+                    const prideBuff = getPrideBuff({
+                        prideBuffEnabled,
+                        impression,
+                        motivation,
+                    });
                     const totalBuff = buff + prideBuff;
                     const raw3 = val2 * (1 + totalBuff);
                     const val3 = round(raw3, "ceil");
@@ -904,53 +950,164 @@
                     const val4 = round(raw4, "ceil");
                     steps.push({ label: "最終ダメージ", val: val4 });
 
-                    // 計算式表示用の文字列生成
-                    const formulaParts = [];
-                    formulaParts.push(`1. 基礎: ceil(${resolvedBase.toFixed(1)}${impBoostMult !== 1 ? `×${impBoostMult}` : ''} + ${conc}×${effectiveNConc} + ${growth} + ${enthusiasm}) = ${val1}`);
-                    
-                    const condStr = effectiveNCond > 0 ? `(1 + ${condMultBase}×${effectiveNCond})` : "1";
-                    formulaParts.push(`2. 倍率: ${val1} × ${condStr} × ${stance} = ${val2.toFixed(2)}`);
-                    
-                    formulaParts.push(`3. バフ: ceil(${val2.toFixed(2)} × (1 + ${totalBuff.toFixed(3)})) = ${val3}`);
-                    formulaParts.push(`4. 最終: ceil(${val3} × ${turn}) = ${val4}`);
+                    const formula = buildFormula({
+                        conc,
+                        effectiveNConc,
+                        concBoostMult,
+                        resolvedBase,
+                        growth,
+                        enthusiasm,
+                        val1,
+                        condMultBase,
+                        effectiveNCond,
+                        stance,
+                        val2,
+                        totalBuff,
+                        val3,
+                        turn,
+                        val4,
+                    });
 
-                    return { final: val4, steps, resolvedBase, formula: formulaParts.join("<br>") };
+                    return { final: val4, steps, resolvedBase, formula };
                 };
 
-                const simulateOptimal = (params, totalResOverride) => {
+                const isLogicPridePlan = (params) =>
+                    params.planType === "logic" && params.prideBuffEnabled;
+
+                const resolveMainTotalRes = (params, totalResOverride, isLogicPride) => {
+                    if (typeof totalResOverride === "number") {
+                        return totalResOverride;
+                    }
+                    if (isLogicPride) {
+                        return (params.motivation || 0) + (params.impression || 0);
+                    }
+                    return (params.conc || 0) + (params.cond || 0);
+                };
+
+                const shouldSkipOptimization = (params) =>
+                    params.planType === "anomaly" ||
+                    (params.planType === "logic" && !params.prideBuffEnabled);
+
+                const buildMainSimParams = (params, xValue, yValue, isLogicPride) => {
+                    if (isLogicPride) {
+                        return {
+                            ...params,
+                            motivation: xValue,
+                            impression: yValue,
+                            baseSources: {
+                                ...(params.baseSources || {}),
+                                motivation: xValue,
+                                impression: yValue,
+                            },
+                        };
+                    }
+                    return {
+                        ...params,
+                        conc: xValue,
+                        cond: yValue,
+                        baseSources: {
+                            ...(params.baseSources || {}),
+                            conc: xValue,
+                            cond: yValue,
+                        },
+                    };
+                };
+
+                const runMainOptimization = (params, totalRes, isLogicPride) => {
                     let maxDmg = -1;
                     let bestConc = 0;
                     let bestResult = null;
-
-                    const isCustom = params.planType === "custom";
-
-                    // Customの場合のロジック用変数
-                    let maxDmg2 = -1;
-                    let bestRes2 = 0; // Logic側のX軸 (Motivation)
-                    const chartData2 = { labels: [], data: [] };
-
-                    const isLogicPride =
-                        params.planType === "logic" && params.prideBuffEnabled;
-                    
-                    // Main optimization target (Sense / Logic / Custom-Main)
-                    // Customの場合は Conc+Cond をまず計算
-                    const totalRes =
-                        typeof totalResOverride === "number"
-                            ? totalResOverride
-                            : isLogicPride
-                              ? (params.motivation || 0) +
-                                (params.impression || 0)
-                              : (params.conc || 0) + (params.cond || 0);
-
                     const chartData = { labels: [], data: [] };
 
-                    const skipOptimization =
-                        params.planType === "anomaly" ||
-                        (params.planType === "logic" &&
-                            !params.prideBuffEnabled);
-                            
+                    for (let c = 0; c <= totalRes; c++) {
+                        const currentResB = totalRes - c;
+                        const simParams = buildMainSimParams(
+                            params,
+                            c,
+                            currentResB,
+                            isLogicPride,
+                        );
+                        const res = calculateDamage(simParams);
+
+                        chartData.labels.push(c);
+                        chartData.data.push(res.final);
+
+                        if (res.final > maxDmg) {
+                            maxDmg = res.final;
+                            bestConc = c;
+                            bestResult = res;
+                        }
+                    }
+
+                    return { maxDmg, bestConc, bestResult, chartData };
+                };
+
+                const shouldLinkCustomCond = (params) =>
+                    ((params.cond || 0) === (params.impression || 0) &&
+                        (params.impression || 0) !== 0) ||
+                    ((params.cond || 0) === 0 && (params.impression || 0) === 0);
+
+                const buildCustomSecondaryParams = (params, motivation, impression) => {
+                    const baseEnthusiasm =
+                        (params.enthusiasm || 0) - (params.motivation || 0);
+                    const simParams = {
+                        ...params,
+                        motivation,
+                        enthusiasm: baseEnthusiasm + motivation,
+                        impression,
+                        baseSources: {
+                            ...(params.baseSources || {}),
+                            motivation,
+                            impression,
+                        },
+                    };
+
+                    if (shouldLinkCustomCond(params)) {
+                        simParams.cond = impression;
+                    }
+                    return simParams;
+                };
+
+                const runCustomSecondaryOptimization = (params) => {
+                    let maxDmg2 = -1;
+                    let bestRes2 = 0;
+                    const chartData2 = { labels: [], data: [] };
+                    const totalRes2 = (params.motivation || 0) + (params.impression || 0);
+
+                    for (let m = 0; m <= totalRes2; m++) {
+                        const currentImp = totalRes2 - m;
+                        const simParams2 = buildCustomSecondaryParams(
+                            params,
+                            m,
+                            currentImp,
+                        );
+                        const res2 = calculateDamage(simParams2);
+
+                        chartData2.labels.push(m);
+                        chartData2.data.push(res2.final);
+
+                        if (res2.final > maxDmg2) {
+                            maxDmg2 = res2.final;
+                            bestRes2 = m;
+                        }
+                    }
+
+                    return { chartData2, maxDmg2, bestRes2 };
+                };
+
+                const simulateOptimal = (params, totalResOverride) => {
+                    const isCustom = params.planType === "custom";
+                    const isLogicPride = isLogicPridePlan(params);
+                    const totalRes = resolveMainTotalRes(
+                        params,
+                        totalResOverride,
+                        isLogicPride,
+                    );
+                    const skipOptimization = shouldSkipOptimization(params);
+
                     if (skipOptimization) {
                         const currentResult = calculateDamage(params);
+                        const chartData = { labels: [], data: [] };
                         chartData.labels.push(
                             isLogicPride ? params.motivation : params.conc,
                         );
@@ -966,123 +1123,25 @@
                         };
                     }
 
-                    // 1. Main Optimization Loop
-                    // Sense, Logic(if pride), Custom(Conc/Cond)
-                    for (let c = 0; c <= totalRes; c++) {
-                        const currentResB = totalRes - c;
-                        
-                        let simParams;
-                        if (isLogicPride) {
-                             simParams = {
-                                  ...params,
-                                  motivation: c,
-                                  impression: currentResB,
-                                  baseSources: {
-                                      ...(params.baseSources || {}),
-                                      motivation: c,
-                                      impression: currentResB,
-                                  },
-                              };
-                        } else {
-                            // Sense or Custom (Main loop is Conc/Cond)
-                             simParams = {
-                                  ...params,
-                                  conc: c,
-                                  cond: currentResB,
-                                  baseSources: {
-                                      ...(params.baseSources || {}),
-                                      conc: c,
-                                      cond: currentResB,
-                                  },
-                              };
-                        }
-                        
-                        const res = calculateDamage(simParams);
-
-                        chartData.labels.push(c);
-                        chartData.data.push(res.final);
-
-                        if (res.final > maxDmg) {
-                            maxDmg = res.final;
-                            bestConc = c;
-                            bestResult = res;
-                        }
-                    }
-
-                    // 2. Secondary Optimization Loop for Custom (Motiv/Impression)
-                    if (isCustom) {
-                        const totalRes2 = (params.motivation || 0) + (params.impression || 0);
-                        const baseEnthusiasm = (params.enthusiasm || 0) - (params.motivation || 0);
-                        // baseCond logic is tricky because customized cond = (cond || impression).
-                        // If cond was derived from impression, we should update it.
-                        // If it came from explicit cond, update might not make sense unless we assume custom mode relationship.
-                        // For simplicity, we assume custom mode users want to see impact on mapped stats too.
-                        
-                        for (let m = 0; m <= totalRes2; m++) {
-                            const currentImp = totalRes2 - m;
-                            
-                            // Re-evaluate dependent params based on new motivation/impression
-                            // enthusiasm = base + motivation
-                            const newEnthusiasm = baseEnthusiasm + m;
-                            
-                            // cond = (original cond input) || impression. 
-                            // If params.cond == params.impression (and params.cond was 0 originally), then it tracks.
-                            // But we don't know original inputs here easily.
-                            // Heuristic: If we are optimizing impression, and plan is custom, update cond if it seems linked?
-                            // Safest is to just update impression and motivation, and let the user understand mappings, 
-                            // BUT enthusiasm definitely needs update as it sums motivation.
-                            // For cond, if we don't update it, impression only affects pride buff.
-                            // Given request "Motivation, Impression graph", likely implies their effects.
-                            // If impression maps to cond in custom, we should likely update cond too IF it was impression-based?
-                            // Let's assume for this graph, we hold explicit Cond constant, but if Cond was inferred from Impression, it changes?
-                            // Actually, calculating derived stats is best done by mapPlanParams if we had state.
-                            // Without state, we update what we can.
-                            
-                            const simParams2 = {
-                                ...params,
-                                motivation: m,
-                                enthusiasm: newEnthusiasm,
-                                impression: currentImp,
-                                baseSources: {
-                                    ...(params.baseSources || {}),
-                                    motivation: m,
-                                    impression: currentImp,
-                                },
-                            };
-                            
-                            // If cond reflects impression in custom logic (cond || impression)
-                            // We can't know for sure if cond came from impression or explicit cond without state.
-                            // However, if we assume the user wants to see "Impression's effect", and impression affects cond...
-                            // Let's try to update cond if it matches old impression?
-                            if ((params.cond || 0) === (params.impression || 0) && (params.impression || 0) !== 0) {
-                                 simParams2.cond = currentImp; // Linking them
-                            } else if ((params.cond || 0) === 0 && (params.impression || 0) === 0) {
-                                  // If both were 0, maybe they are linked?
-                                 simParams2.cond = currentImp;
-                            }
-                            
-                            const res2 = calculateDamage(simParams2);
-                            
-                            chartData2.labels.push(m);
-                            chartData2.data.push(res2.final);
-
-                            if (res2.final > maxDmg2) {
-                                maxDmg2 = res2.final;
-                                bestRes2 = m;
-                            }
-                        }
-                    }
+                    const mainResult = runMainOptimization(
+                        params,
+                        totalRes,
+                        isLogicPride,
+                    );
+                    const customResult = isCustom
+                        ? runCustomSecondaryOptimization(params)
+                        : null;
 
                     return {
-                        maxDmg,
-                        bestConc,
-                        bestResult,
-                        chartData,
-                        chartData2: isCustom ? chartData2 : null,
-                        maxDmg2: isCustom ? maxDmg2 : null,
-                        bestRes2: isCustom ? bestRes2 : null,
+                        maxDmg: mainResult.maxDmg,
+                        bestConc: mainResult.bestConc,
+                        bestResult: mainResult.bestResult,
+                        chartData: mainResult.chartData,
+                        chartData2: customResult ? customResult.chartData2 : null,
+                        maxDmg2: customResult ? customResult.maxDmg2 : null,
+                        bestRes2: customResult ? customResult.bestRes2 : null,
                         skipOptimization: false,
-                        isCustom
+                        isCustom,
                     };
                 };
 
@@ -1178,6 +1237,87 @@
                     chart2Container: document.getElementById("optChart2Container"),
                 };
 
+                const BASE_MODE_LABELS = {
+                    conc_percent: "集中%",
+                    cond_percent: "好調%",
+                    genki_percent: "元気%",
+                    motivation_percent: "やる気%",
+                    impression_percent: "好印象%",
+                    allout_percent: "累計全力値%",
+                };
+
+                const getBaseModeLabel = (state) => {
+                    const label = BASE_MODE_LABELS[state.baseMode];
+                    if (!label) return "固定値";
+                    return `${label} (${state.base.toFixed(2)}%)`;
+                };
+
+                const getRatioLabels = (state) => {
+                    const isLogicPride =
+                        state.planType === "logic" && state.prideBuffEnabled;
+                    if (state.planType === "logic") {
+                        return {
+                            labelA: isLogicPride ? "やる気" : "元気",
+                            labelB: "好印象",
+                        };
+                    }
+                    if (state.planType === "anomaly") {
+                        return { labelA: "熱意", labelB: "成長" };
+                    }
+                    return { labelA: "集中", labelB: "好調" };
+                };
+
+                const applyOptimizationLayout = (skipOptimization) => {
+                    const { damageContainer, optimalBox, currentLabel } =
+                        els.display;
+                    if (skipOptimization) {
+                        damageContainer?.classList.remove("md:grid-cols-2");
+                        optimalBox?.classList.add("hidden");
+                        if (currentLabel) currentLabel.innerText = "Damage / Score";
+                        return;
+                    }
+
+                    damageContainer?.classList.add("md:grid-cols-2");
+                    optimalBox?.classList.remove("hidden");
+                    if (currentLabel) currentLabel.innerText = "Current Damage";
+                };
+
+                const buildMarkerSeries = (labels, values, targetX, targetY) =>
+                    labels.map((label, idx) =>
+                        Math.abs(label - targetX) < 0.1 ? targetY ?? values[idx] : null,
+                    );
+
+                const setHidden = (element, shouldHide) => {
+                    if (!element) return;
+                    element.classList.toggle("hidden", shouldHide);
+                };
+
+                const isPlanVisible = (plan, planGroup) =>
+                    plan === "custom" || planGroup.split(" ").includes(plan);
+
+                const setChartAxisByPlan = (planAdjusted) => {
+                    if (planAdjusted.planType === "custom") {
+                        els.chart2Container?.classList.remove("hidden");
+                        if (chartInstance) {
+                            chartInstance.options.scales.x.title.text = "集中 (Conc)";
+                        }
+                        if (chartInstance2) {
+                            chartInstance2.options.scales.x.title.text =
+                                "やる気 (Motivation)";
+                        }
+                        return;
+                    }
+
+                    els.chart2Container?.classList.add("hidden");
+                    if (!chartInstance) return;
+                    const isLogicPride =
+                        planAdjusted.planType === "logic" &&
+                        planAdjusted.prideBuffEnabled;
+                    chartInstance.options.scales.x.title.text = isLogicPride
+                        ? "やる気 (Motivation)"
+                        : "集中 (Conc)";
+                };
+
                 const getState = () => {
                     const getVal = (id) =>
                         parseFloat(document.getElementById(id)?.value) || 0;
@@ -1195,7 +1335,10 @@
                         genki: getInt("logic_genki"),
                         motivation: getInt("logic_motivation"),
                         impression: getInt("logic_impression"),
-                        impressionBoost: planType === 'logic' || planType === 'custom' ? getVal("impression_boost") : 0,
+                        concBoost:
+                            planType === "sense" || planType === "custom"
+                                ? getVal("conc_boost")
+                                : 0,
                         totalAllout: getInt("actual_total_allout"),
                         isSuper:
                             document.getElementById("is_super_cond").checked,
@@ -1229,13 +1372,16 @@
                     update();
                 };
 
-                const attachEvents = () => {
+                const bindInputEvents = () => {
                     els.inputs.forEach((input) =>
                         input.addEventListener("input", update),
                     );
                     document
                         .getElementById("base_mode")
                         .addEventListener("change", update);
+                };
+
+                const bindPlanTypeEvents = () => {
                     document
                         .querySelectorAll('input[name="plan_type"]')
                         .forEach((radio) =>
@@ -1244,11 +1390,19 @@
                                 update();
                             }),
                         );
+                };
 
+                const bindThemeEvent = () => {
                     els.themeBtn.addEventListener("click", () => {
                         ThemeManager.toggle();
-                        updateChartTheme(); // チャートの色を更新
+                        updateChartTheme();
                     });
+                };
+
+                const attachEvents = () => {
+                    bindInputEvents();
+                    bindPlanTypeEvents();
+                    bindThemeEvent();
                 };
 
                 const initChart = () => {
@@ -1377,20 +1531,7 @@
                     }
                     const currentResult =
                         Calculator.calculateDamage(planAdjusted);
-                    const modeLabel =
-                        state.baseMode === "conc_percent"
-                            ? `集中% (${state.base.toFixed(2)}%)`
-                            : state.baseMode === "cond_percent"
-                              ? `好調% (${state.base.toFixed(2)}%)`
-                              : state.baseMode === "genki_percent"
-                                ? `元気% (${state.base.toFixed(2)}%)`
-                                : state.baseMode === "motivation_percent"
-                                  ? `やる気% (${state.base.toFixed(2)}%)`
-                                  : state.baseMode === "impression_percent"
-                                    ? `好印象% (${state.base.toFixed(2)}%)`
-                                    : state.baseMode === "allout_percent"
-                                      ? `累計全力値% (${state.base.toFixed(2)}%)`
-                                      : "固定値";
+                    const modeLabel = getBaseModeLabel(state);
                     if (els.display.resolvedBaseNote) {
                         els.display.resolvedBaseNote.innerText = `実際に計算に使われる基礎スコア (${modeLabel}): ${Number(currentResult.resolvedBase.toFixed(2)).toLocaleString()}`;
                     }
@@ -1405,22 +1546,34 @@
                         simResult,
                         totalRes,
                     );
-                    
-                    if (planAdjusted.planType === 'custom') {
-                        if (els.chart2Container) els.chart2Container.classList.remove('hidden');
-                        if (chartInstance) chartInstance.options.scales.x.title.text = "集中 (Conc)";
-                        if (chartInstance2) chartInstance2.options.scales.x.title.text = "やる気 (Motivation)";
-                    } else {
-                        if (els.chart2Container) els.chart2Container.classList.add('hidden');
-                        if (chartInstance) {
-                             const isLogicPride = planAdjusted.planType === "logic" && planAdjusted.prideBuffEnabled;
-                             chartInstance.options.scales.x.title.text = isLogicPride ? "やる気 (Motivation)" : "集中 (Conc)";
-                         }
-                    }
+
+                    setChartAxisByPlan(planAdjusted);
 
                     updateChartData(planAdjusted, simResult);
                 };
 
+
+                const renderStepRows = (current, best) =>
+                    current.steps
+                        .map((step, i) => {
+                            const optStep = best.bestResult
+                                ? best.bestResult.steps[i]
+                                : step;
+                            const isDifferent =
+                                Math.abs(step.val - optStep.val) > 0.001;
+                            const diffClass = isDifferent
+                                ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 font-bold"
+                                : "text-slate-500 dark:text-slate-400";
+
+                            return `
+                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                    <td class="px-6 py-3 font-mono text-xs text-slate-400 border-r border-slate-100 dark:border-slate-800">Step ${i + 1}. <br><span class="text-slate-600 dark:text-slate-300 font-sans">${step.label}</span></td>
+                    <td class="px-6 py-3 font-bold text-slate-700 dark:text-slate-200">${Number(step.val.toFixed(2)).toLocaleString()}</td>
+                    <td class="px-6 py-3 ${diffClass}">${Number(optStep.val.toFixed(2)).toLocaleString()}</td>
+                </tr>
+            `;
+                        })
+                        .join("");
                 const renderResults = (state, current, best, totalRes) => {
                     els.display.currentDmg.innerText = Number(
                         current.final.toFixed(0),
@@ -1428,28 +1581,7 @@
                     els.display.optimalDmg.innerText = Number(
                         best.maxDmg.toFixed(0),
                     ).toLocaleString();
-                    const isLogicPride =
-                        state.planType === "logic" && state.prideBuffEnabled;
-                    const labelA =
-                        state.planType === "logic"
-                            ? isLogicPride
-                                ? "やる気"
-                                : "元気"
-                            : state.planType === "anomaly"
-                              ? "熱意"
-                              : state.planType === "custom"
-                                ? "集中"
-                                : "集中";
-                    const labelB =
-                        state.planType === "logic"
-                            ? isLogicPride
-                                ? "好印象"
-                                : "好印象"
-                            : state.planType === "anomaly"
-                              ? "成長"
-                              : state.planType === "custom"
-                                ? "好調"
-                                : "好調";
+                    const { labelA, labelB } = getRatioLabels(state);
                     
                     let currentRatioText = `${labelA} ${state.conc} : ${labelB} ${state.cond}`;
                     let optimalRatioText = `${labelA} ${best.bestConc} : ${labelB} ${totalRes - best.bestConc}`;
@@ -1471,48 +1603,18 @@
                             ? ((diff / best.maxDmg) * 100).toFixed(1)
                             : 0;
 
-                    // Toggle Optimal Box visibility based on skipOptimization
-                    const damageContainer = document.getElementById("damage_display_container");
-                    const optimalBox = document.getElementById("optimal_dmg_box");
-                    const currentLabel = document.getElementById("current_dmg_label");
+                    applyOptimizationLayout(best.skipOptimization);
 
                     if (best.skipOptimization) {
-                        if (damageContainer) damageContainer.classList.remove("md:grid-cols-2");
-                        if (optimalBox) optimalBox.classList.add("hidden");
-                         // Optional: Change label to just "Damage" or "Score" if single view
-                         if (currentLabel) currentLabel.innerText = "Damage / Score";
                         els.display.diffText.innerHTML = `<span class="text-slate-500">最適化対象外 (ロジック/アノマリー または プライド無効)</span>`;
                     } else {
-                        if (damageContainer) damageContainer.classList.add("md:grid-cols-2");
-                        if (optimalBox) optimalBox.classList.remove("hidden");
-                        if (currentLabel) currentLabel.innerText = "Current Damage";
-
                         els.display.diffText.innerHTML =
                             diff > 0.001
                                 ? `<span class="text-rose-500">機会損失: ${Math.floor(diff).toLocaleString()} (-${diffPct}%)</span>`
                                 : `<span class="text-emerald-500">最適構成です (Loss: 0%)</span>`;
                     }
 
-                    const rows = current.steps
-                        .map((step, i) => {
-                            const optStep = best.bestResult
-                                ? best.bestResult.steps[i]
-                                : step;
-                            const isDifferent =
-                                Math.abs(step.val - optStep.val) > 0.001;
-                            const diffClass = isDifferent
-                                ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 font-bold"
-                                : "text-slate-500 dark:text-slate-400";
-
-                            return `
-                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-                    <td class="px-6 py-3 font-mono text-xs text-slate-400 border-r border-slate-100 dark:border-slate-800">Step ${i + 1}. <br><span class="text-slate-600 dark:text-slate-300 font-sans">${step.label}</span></td>
-                    <td class="px-6 py-3 font-bold text-slate-700 dark:text-slate-200">${Number(step.val.toFixed(2)).toLocaleString()}</td>
-                    <td class="px-6 py-3 ${diffClass}">${Number(optStep.val.toFixed(2)).toLocaleString()}</td>
-                </tr>
-            `;
-                        })
-                        .join("");
+                    const rows = renderStepRows(current, best);
 
                     if (els.display.formula) {
                         const formula = current.formula || "";
@@ -1526,25 +1628,26 @@
                     
                     const labels = simResult.chartData.labels;
                     const data = simResult.chartData.data;
-                    const currentConc = planAdjusted.planType === 'logic' && planAdjusted.prideBuffEnabled 
-                        ? planAdjusted.motivation 
+                    const currentConc = planAdjusted.planType === "logic" && planAdjusted.prideBuffEnabled
+                        ? planAdjusted.motivation
                         : planAdjusted.conc;
 
                     chartInstance.data.labels = labels;
                     chartInstance.data.datasets[0].data = data;
-                    
-                    // Current Point
-                    chartInstance.data.datasets[1].data = labels.map((l) =>
-                        Math.abs(l - currentConc) < 0.1 ? data[labels.indexOf(l)] : null
+
+                    chartInstance.data.datasets[1].data = buildMarkerSeries(
+                        labels,
+                        data,
+                        currentConc,
                     );
-                    
-                    // Best Point
-                    chartInstance.data.datasets[2].data = labels.map((l) =>
-                        Math.abs(l - simResult.bestConc) < 0.1 ? simResult.maxDmg : null
+                    chartInstance.data.datasets[2].data = buildMarkerSeries(
+                        labels,
+                        data,
+                        simResult.bestConc,
+                        simResult.maxDmg,
                     );
                     chartInstance.update();
 
-                    // Chart 2 Update (Custom Only)
                     if (simResult.isCustom && chartInstance2 && simResult.chartData2) {
                         const labels2 = simResult.chartData2.labels;
                         const data2 = simResult.chartData2.data;
@@ -1552,92 +1655,88 @@
 
                         chartInstance2.data.labels = labels2;
                         chartInstance2.data.datasets[0].data = data2;
-                        
-                        // Current Point
-                        chartInstance2.data.datasets[1].data = labels2.map((l) =>
-                            Math.abs(l - currentMotiv) < 0.1 ? data2[labels2.indexOf(l)] : null
+
+                        chartInstance2.data.datasets[1].data = buildMarkerSeries(
+                            labels2,
+                            data2,
+                            currentMotiv,
                         );
-                        
-                        // Best Point
-                        chartInstance2.data.datasets[2].data = labels2.map((l) =>
-                            Math.abs(l - simResult.bestRes2) < 0.1 ? simResult.maxDmg2 : null
+                        chartInstance2.data.datasets[2].data = buildMarkerSeries(
+                            labels2,
+                            data2,
+                            simResult.bestRes2,
+                            simResult.maxDmg2,
                         );
                         chartInstance2.update();
                     }
                 };
 
-                const updatePlanVisibility = (plan) => {
-                    const groups =
-                        document.querySelectorAll("[data-plan-group]");
-                    groups.forEach((el) => {
-                        const plans = el.dataset.planGroup.split(" ");
-                        if (plan === "custom" || plans.includes(plan)) {
-                            el.classList.remove("hidden");
-                        } else {
-                            el.classList.add("hidden");
-                        }
+                const updatePlanGroupVisibility = (plan) => {
+                    const groups = document.querySelectorAll("[data-plan-group]");
+                    groups.forEach((element) => {
+                        const visible = isPlanVisible(plan, element.dataset.planGroup);
+                        setHidden(element, !visible);
                     });
+                };
+
+                const updateBaseModeVisibility = (plan) => {
                     const baseSelect = document.getElementById("base_mode");
                     const baseOptions = document.querySelectorAll(
                         "#base_mode option[data-plan-group]",
                     );
                     let mustResetBase = false;
-                    baseOptions.forEach((opt) => {
-                        const plans = opt.dataset.planGroup.split(" ");
-                        if (plan === "custom" || plans.includes(plan)) {
-                            opt.classList.remove("hidden");
-                        } else {
-                            opt.classList.add("hidden");
-                            if (baseSelect?.value === opt.value) {
-                                mustResetBase = true;
-                            }
+
+                    baseOptions.forEach((option) => {
+                        const visible = isPlanVisible(plan, option.dataset.planGroup);
+                        setHidden(option, !visible);
+                        if (!visible && baseSelect?.value === option.value) {
+                            mustResetBase = true;
                         }
                     });
+
                     if (mustResetBase && baseSelect) {
                         baseSelect.value = "fixed";
                     }
+                };
+
+                const updateStanceVisibility = (plan) => {
                     const stanceRow = document.getElementById("row_stance");
-                    if (stanceRow) {
-                        if (plan === "anomaly" || plan === "custom") {
-                            stanceRow.classList.remove("hidden");
-                        } else {
-                            stanceRow.classList.add("hidden");
-                            const stanceInput =
-                                document.getElementById("stance_mult");
-                            if (stanceInput) stanceInput.value = "1";
-                        }
-                    }
+                    const showStance = plan === "anomaly" || plan === "custom";
+                    setHidden(stanceRow, !showStance);
+                    if (showStance) return;
+
+                    const stanceInput = document.getElementById("stance_mult");
+                    if (stanceInput) stanceInput.value = "1";
+                };
+
+                const updateSuperCondVisibility = (plan) => {
                     const superWrapper = document
                         .getElementById("is_super_cond")
                         ?.closest(".mb-4");
-                    if (superWrapper) {
-                        if (plan === "sense" || plan === "custom") {
-                            superWrapper.classList.remove("hidden");
-                        } else {
-                            superWrapper.classList.add("hidden");
-                        }
-                    }
+                    const showSuper = plan === "sense" || plan === "custom";
+                    setHidden(superWrapper, !showSuper);
+                };
 
+                const updateCoeffInputsState = (plan) => {
                     const coeffInputs = [
                         document.getElementById("n_conc"),
                         document.getElementById("n_cond"),
                     ];
                     const disableCoeff = plan === "logic" || plan === "anomaly";
-                    coeffInputs.forEach((inp) => {
-                        if (!inp) return;
-                        inp.disabled = disableCoeff;
-                        if (disableCoeff) {
-                            inp.classList.add(
-                                "opacity-50",
-                                "cursor-not-allowed",
-                            );
-                        } else {
-                            inp.classList.remove(
-                                "opacity-50",
-                                "cursor-not-allowed",
-                            );
-                        }
+                    coeffInputs.forEach((input) => {
+                        if (!input) return;
+                        input.disabled = disableCoeff;
+                        input.classList.toggle("opacity-50", disableCoeff);
+                        input.classList.toggle("cursor-not-allowed", disableCoeff);
                     });
+                };
+
+                const updatePlanVisibility = (plan) => {
+                    updatePlanGroupVisibility(plan);
+                    updateBaseModeVisibility(plan);
+                    updateStanceVisibility(plan);
+                    updateSuperCondVisibility(plan);
+                    updateCoeffInputsState(plan);
                 };
 
                 const mapPlanParams = (state) => {
@@ -1650,59 +1749,60 @@
                         totalAllout: state.totalAllout,
                     };
 
+                    const mapLogicPlanParams = () => ({
+                        ...state,
+                        conc: state.prideBuffEnabled ? state.motivation : 0,
+                        cond: state.prideBuffEnabled ? state.impression : 0,
+                        growth: 0,
+                        enthusiasm: 0,
+                        stance: 1,
+                        buff: state.buff,
+                        baseSources,
+                    });
+
+                    const mapAnomalyPlanParams = () => {
+                        const growthDisabled = state.anomalyGrowthDisabled;
+                        const appliedGrowth = growthDisabled ? 0 : state.growth;
+                        return {
+                            ...state,
+                            conc: state.enthusiasm,
+                            cond: appliedGrowth,
+                            growth: appliedGrowth + state.totalAllout * state.alloutRate,
+                            enthusiasm: state.enthusiasm,
+                            stance: state.stance,
+                            buff: state.buff,
+                            baseSources,
+                        };
+                    };
+
+                    const mapCustomPlanParams = () => ({
+                        ...state,
+                        conc: state.conc || state.genki,
+                        cond: state.cond,
+                        growth: state.growth + state.totalAllout,
+                        enthusiasm: state.enthusiasm,
+                        buff: state.buff,
+                        baseSources,
+                    });
+
+                    const mapDefaultPlanParams = () => ({
+                        ...state,
+                        growth: 0,
+                        enthusiasm: 0,
+                        stance: 1,
+                        buff: state.buff,
+                        baseSources,
+                    });
+
                     switch (state.planType) {
                         case "logic":
-                            return {
-                                ...state,
-                                conc: state.prideBuffEnabled
-                                    ? state.motivation
-                                    : 0,
-                                cond: state.prideBuffEnabled
-                                    ? state.impression
-                                    : 0,
-                                growth: 0,
-                                enthusiasm: 0,
-                                stance: 1,
-                                buff: state.buff,
-                                baseSources,
-                            };
-                        case "anomaly": {
-                            const growthDisabled = state.anomalyGrowthDisabled;
-                            const appliedGrowth = growthDisabled
-                                ? 0
-                                : state.growth;
-                            return {
-                                ...state,
-                                conc: state.enthusiasm,
-                                cond: appliedGrowth,
-                                growth:
-                                    appliedGrowth +
-                                    state.totalAllout * state.alloutRate,
-                                enthusiasm: state.enthusiasm,
-                                stance: state.stance,
-                                buff: state.buff,
-                                baseSources,
-                            };
-                        }
+                            return mapLogicPlanParams();
+                        case "anomaly":
+                            return mapAnomalyPlanParams();
                         case "custom":
-                            return {
-                                ...state,
-                                conc: state.conc || state.genki,
-                                cond: state.cond,
-                                growth: state.growth + state.totalAllout,
-                                enthusiasm: state.enthusiasm,
-                                buff: state.buff,
-                                baseSources,
-                            };
+                            return mapCustomPlanParams();
                         default:
-                            return {
-                                ...state,
-                                growth: 0,
-                                enthusiasm: 0,
-                                stance: 1,
-                                buff: state.buff,
-                                baseSources,
-                            };
+                            return mapDefaultPlanParams();
                     }
                 };
 
